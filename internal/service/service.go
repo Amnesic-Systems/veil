@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"log"
 	"net"
 	"net/http"
@@ -31,9 +32,9 @@ func Run(
 		appReady = make(chan struct{})
 	)
 
-	// Perform basic safety checks before starting.
-	if !system.HasSecureRNG() {
-		log.Fatal("Nitro hardware RNG is not in use.")
+	// Run basic safety checks before starting.
+	if err := checkSystemSafety(config); err != nil {
+		log.Fatalf("Failed safety check: %v", err)
 	}
 
 	// Initialize the enclave keys for enclave synchronization.
@@ -57,6 +58,20 @@ func Run(
 	startAllWebSrvs(ctx, config.WaitForApp, appReady, svc.intSrv, svc.extSrv)
 
 	log.Println("Exiting.")
+}
+
+func checkSystemSafety(config *config.Config) error {
+	if config.EnableTesting {
+		return nil
+	}
+
+	if !system.HasSecureRNG() {
+		return errors.New("system does not use desired RNG")
+	}
+	if !system.HasSecureKernelVersion() {
+		return errors.New("system does not have minimum desired kernel version")
+	}
+	return nil
 }
 
 func startAllWebSrvs(

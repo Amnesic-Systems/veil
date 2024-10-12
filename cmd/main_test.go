@@ -165,7 +165,7 @@ func TestPages(t *testing.T) {
 }
 
 func TestReadyHandler(t *testing.T) {
-	defer stopSvc(startSvc(t, []string{"-wait-for-app"}))
+	defer stopSvc(startSvc(t, []string{"-insecure", "-wait-for-app"}))
 
 	cases := []struct {
 		name     string
@@ -266,7 +266,7 @@ func TestAttestation(t *testing.T) {
 }
 
 func TestHashes(t *testing.T) {
-	defer stopSvc(startSvc(t, []string{}))
+	defer stopSvc(startSvc(t, []string{"-insecure"}))
 
 	var (
 		hashes = new(attestation.Hashes)
@@ -354,7 +354,7 @@ func TestReverseProxy(t *testing.T) {
 		},
 	))
 	defer srv.Close()
-	defer stopSvc(startSvc(t, []string{"-app-web-srv", srv.URL}))
+	defer stopSvc(startSvc(t, []string{"-insecure", "-app-web-srv", srv.URL}))
 
 	cases := []struct {
 		name     string
