@@ -1,6 +1,6 @@
 module github.com/Amnesic-Systems/veil
 
-go 1.23
+go 1.23.0
 
 require (
 	github.com/Amnesic-Systems/nitriding-proxy v0.1.1
