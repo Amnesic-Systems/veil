@@ -7,7 +7,7 @@ import (
 
 func HasSecureKernelVersion() bool {
 	var uname syscall.Utsname
-	if err := syscall.Uname(&uname); err == nil {
+	if err := syscall.Uname(&uname); err != nil {
 		log.Printf("Error calling uname system call: %v", err)
 		return false
 	}
@@ -27,7 +27,7 @@ func hasSecureKernelVersion(uname syscall.Utsname) bool {
 			version[offset] = digit
 			digit = 0
 			offset++
-			if offset > len(version) {
+			if offset >= len(version) {
 				break
 			}
 		}

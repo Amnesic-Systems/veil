@@ -14,11 +14,53 @@ func TestHasSecureKernelVersion(t *testing.T) {
 		want  bool
 	}{
 		{
-			name: "kernel version is too low",
+			name: "patch version too low",
 			uname: syscall.Utsname{
 				Release: [65]int8{'5', '.', '1', '7', '.', '1', '1'},
 			},
 			want: false,
+		},
+		{
+			name: "minor version too low",
+			uname: syscall.Utsname{
+				Release: [65]int8{'5', '.', '1', '6', '.', '1', '2'},
+			},
+			want: false,
+		},
+		{
+			name: "major version too low",
+			uname: syscall.Utsname{
+				Release: [65]int8{'4', '.', '1', '7', '.', '1', '2'},
+			},
+			want: false,
+		},
+		{
+			name: "version matches minimum",
+			uname: syscall.Utsname{
+				Release: [65]int8{'5', '.', '1', '7', '.', '1', '2'},
+			},
+			want: true,
+		},
+		{
+			name: "major version high",
+			uname: syscall.Utsname{
+				Release: [65]int8{'6', '.', '1', '7', '.', '1', '2'},
+			},
+			want: true,
+		},
+		{
+			name: "minor version high",
+			uname: syscall.Utsname{
+				Release: [65]int8{'5', '.', '1', '8', '.', '1', '2'},
+			},
+			want: true,
+		},
+		{
+			name: "patch version high",
+			uname: syscall.Utsname{
+				Release: [65]int8{'5', '.', '1', '7', '.', '1', '3'},
+			},
+			want: true,
 		},
 	}
 
