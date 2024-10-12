@@ -24,6 +24,9 @@ func HasSecureRNG() bool {
 	return string(haveRNG) == wantRNG
 }
 
+// HasSecureKernelVersion checks if the system is running a kernel version that
+// includes important security updates. This was suggested in:
+// https://blog.trailofbits.com/2024/09/24/notes-on-aws-nitro-enclaves-attack-surface/
 func HasSecureKernelVersion() bool {
 	var uname syscall.Utsname
 	if err := syscall.Uname(&uname); err != nil {
@@ -51,6 +54,7 @@ func hasSecureKernelVersion(uname syscall.Utsname) bool {
 			}
 		}
 	}
+	log.Printf("Have kernel version: %d.%d.%d", version[0], version[1], version[2])
 
 	// We are looking for kernel version 5.17.12 or later.
 	minVersion := [3]int{5, 17, 12}
