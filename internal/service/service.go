@@ -43,8 +43,8 @@ func Run(
 	hashes := new(attestation.Hashes)
 
 	// Initialize Web servers.
-	intSrv := NewIntSrv(config, keys, hashes, appReady)
-	extSrv := NewExtSrv(config, attester, attestation.AuxToClient(hashes))
+	intSrv := newIntSrv(config, keys, hashes, appReady)
+	extSrv := newExtSrv(config, attester, attestation.AuxToClient(hashes))
 	extSrv.TLSConfig = &tls.Config{
 		Certificates: []tls.Certificate{
 			util.Must(tls.X509KeyPair(cert, key)),
@@ -112,7 +112,7 @@ func startAllWebSrvs(
 	}
 }
 
-func NewIntSrv(
+func newIntSrv(
 	config *config.Config,
 	keys *enclave.Keys,
 	hashes *attestation.Hashes,
@@ -127,7 +127,7 @@ func NewIntSrv(
 	}
 }
 
-func NewExtSrv(
+func newExtSrv(
 	config *config.Config,
 	attester enclave.Attester,
 	auxFn enclave.AuxFunc,
