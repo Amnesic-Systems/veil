@@ -61,7 +61,7 @@ func Run(
 }
 
 func checkSystemSafety(config *config.Config) error {
-	if config.EnableTesting {
+	if config.Testing {
 		return nil
 	}
 

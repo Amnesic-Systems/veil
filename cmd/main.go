@@ -76,14 +76,14 @@ func parseFlags(out io.Writer, args []string) (*config.Config, error) {
 
 	// Build and validate the config.
 	return &config.Config{
-		Debug:         *debug,
-		ExtPubHost:    *extPubHost,
-		ExtPubPort:    *extPubPort,
-		IntHost:       *intHost,
-		IntPort:       *intPort,
-		EnableTesting: *enableTesting,
-		WaitForApp:    *waitForApp,
-		AppWebSrv:     util.Must(url.Parse(*appWebSrv)),
+		Debug:      *debug,
+		ExtPubHost: *extPubHost,
+		ExtPubPort: *extPubPort,
+		IntHost:    *intHost,
+		IntPort:    *intPort,
+		Testing:    *enableTesting,
+		WaitForApp: *waitForApp,
+		AppWebSrv:  util.Must(url.Parse(*appWebSrv)),
 	}, nil
 }
 
@@ -114,7 +114,7 @@ func run(ctx context.Context, out io.Writer, args []string) (err error) {
 
 	// Initialize dependencies and start the service.
 	attester := enclave.NewNitroAttester()
-	if cfg.EnableTesting {
+	if cfg.Testing {
 		attester = enclave.NewNoopAttester()
 	}
 	service.Run(ctx, cfg, attester, tunnel.NewNoop())
