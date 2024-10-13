@@ -18,21 +18,13 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-type service struct {
-	extSrv *http.Server
-	intSrv *http.Server
-}
-
 func Run(
 	ctx context.Context,
 	config *config.Config,
 	attester enclave.Attester,
 	mechanism tunnel.Mechanism,
 ) {
-	var (
-		svc      = new(service)
-		appReady = make(chan struct{})
-	)
+	var appReady = make(chan struct{})
 
 	// Run basic safety checks before starting.
 	if err := checkSystemSafety(config); err != nil {
@@ -51,9 +43,9 @@ func Run(
 	hashes := new(attestation.Hashes)
 
 	// Initialize Web servers.
-	svc.intSrv = NewIntSrv(config, keys, hashes, appReady)
-	svc.extSrv = NewExtSrv(config, attester, attestation.AuxToClient(hashes))
-	svc.extSrv.TLSConfig = &tls.Config{
+	intSrv := NewIntSrv(config, keys, hashes, appReady)
+	extSrv := NewExtSrv(config, attester, attestation.AuxToClient(hashes))
+	extSrv.TLSConfig = &tls.Config{
 		Certificates: []tls.Certificate{
 			util.Must(tls.X509KeyPair(cert, key)),
 		},
@@ -65,7 +57,7 @@ func Run(
 
 	// Start all Web servers and block until all Web servers have stopped, which
 	// should only happen if the given context is canceled.
-	startAllWebSrvs(ctx, appReady, svc.intSrv, svc.extSrv)
+	startAllWebSrvs(ctx, appReady, intSrv, extSrv)
 
 	log.Println("Exiting.")
 }
