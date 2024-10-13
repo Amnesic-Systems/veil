@@ -2,17 +2,19 @@ package service
 
 import (
 	"context"
+	"crypto/tls"
 	"errors"
 	"log"
 	"net"
 	"net/http"
-	"sync"
 
 	"github.com/Amnesic-Systems/veil/internal/config"
 	"github.com/Amnesic-Systems/veil/internal/enclave"
+	"github.com/Amnesic-Systems/veil/internal/httputil"
 	"github.com/Amnesic-Systems/veil/internal/service/attestation"
 	"github.com/Amnesic-Systems/veil/internal/system"
 	"github.com/Amnesic-Systems/veil/internal/tunnel"
+	"github.com/Amnesic-Systems/veil/internal/util"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -38,16 +40,24 @@ func Run(
 	}
 
 	// Initialize the enclave keys for enclave synchronization.
+	cert, key, err := httputil.CreateCertificate(config.FQDN)
+	if err != nil {
+		log.Fatalf("Failed to create certificate: %v", err)
+	}
 	keys := new(enclave.Keys)
-	// TODO: Remove debug code
-	keys.SetAppKeys([]byte("app_keys"))
-	keys.SetVeilKeys([]byte("veil_key"), []byte("veil_cert"))
+	keys.SetVeilKeys(key, cert)
+
 	// Initialize hashes for the attestation document.
 	hashes := new(attestation.Hashes)
 
 	// Initialize Web servers.
-	svc.extSrv = NewExtSrv(config, attester, attestation.AuxToClient(hashes))
 	svc.intSrv = NewIntSrv(config, keys, hashes, appReady)
+	svc.extSrv = NewExtSrv(config, attester, attestation.AuxToClient(hashes))
+	svc.extSrv.TLSConfig = &tls.Config{
+		Certificates: []tls.Certificate{
+			util.Must(tls.X509KeyPair(cert, key)),
+		},
+	}
 
 	// Set up the networking tunnel. This function will block until the tunnel
 	// is ready to use.
@@ -55,7 +65,7 @@ func Run(
 
 	// Start all Web servers and block until all Web servers have stopped, which
 	// should only happen if the given context is canceled.
-	startAllWebSrvs(ctx, config.WaitForApp, appReady, svc.intSrv, svc.extSrv)
+	startAllWebSrvs(ctx, appReady, svc.intSrv, svc.extSrv)
 
 	log.Println("Exiting.")
 }
@@ -76,48 +86,38 @@ func checkSystemSafety(config *config.Config) error {
 
 func startAllWebSrvs(
 	ctx context.Context,
-	waitForApp bool,
 	ready chan struct{},
 	intSrv *http.Server,
 	extSrv *http.Server,
 ) {
-	var wg = new(sync.WaitGroup)
-	defer wg.Wait()
-
-	// Start the internal Web server first.  If desired, we'll wait for the
-	// application's "ready" signal before starting the external Web server.
-	startWebSrv(ctx, intSrv, wg)
-	if waitForApp {
-		<-ready
-	}
-	log.Print("Application is ready.")
-	startWebSrv(ctx, extSrv, wg)
-}
-
-func startWebSrv(
-	ctx context.Context,
-	srv *http.Server,
-	wg *sync.WaitGroup,
-) {
 	go func(srv *http.Server) {
-		log.Printf("Starting web server: %v", srv.Addr)
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("Error listening and serving: %v", err)
+		log.Println("Starting internal web server.")
+		err := intSrv.ListenAndServe()
+		if err != nil && err != http.ErrServerClosed {
+			log.Fatalf("Error serving internal web server: %v", err)
 		}
-	}(srv)
+	}(intSrv)
+	// If desired, wait for the application's "ready" signal before starting the
+	// external Web server.
+	<-ready
 
-	wg.Add(1)
-	go func(ctx context.Context, srv *http.Server, wg *sync.WaitGroup) {
-		defer wg.Done()
-		log.Print("Waiting for web server to shut down.")
-		<-ctx.Done()
-		log.Printf("Got signal – shutting down: %s", srv.Addr)
-		// TODO: only do shutdown if server is actually running
-		if err := srv.Shutdown(ctx); err != nil {
-			log.Printf("Error shutting down server: %v", err)
+	go func(srv *http.Server) {
+		log.Println("Starting external web server.")
+		err := extSrv.ListenAndServeTLS("", "")
+		if err != nil && err != http.ErrServerClosed {
+			log.Fatalf("Error serving external web server: %v", err)
 		}
-		log.Print("Web server is done.")
-	}(ctx, srv, wg)
+	}(extSrv)
+
+	// Wait until the context is canceled, at which point it's time to stop web
+	// servers.
+	<-ctx.Done()
+	if err := intSrv.Shutdown(ctx); err != nil {
+		log.Printf("Error shutting down internal server: %v", err)
+	}
+	if err := extSrv.Shutdown(ctx); err != nil {
+		log.Printf("Error shutting down external server: %v", err)
+	}
 }
 
 func NewIntSrv(

@@ -92,7 +92,7 @@ func intSrv(path string) string {
 }
 
 func extSrv(path string) string {
-	return fmt.Sprintf("http://127.0.0.1:%s%s", defaultExtPubPort, path)
+	return fmt.Sprintf("https://127.0.0.1:%s%s", defaultExtPubPort, path)
 }
 
 func errFromBody(t *testing.T, resp *http.Response) string {

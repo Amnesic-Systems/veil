@@ -47,6 +47,8 @@ func addInternalRoutes(
 
 	if config.WaitForApp {
 		r.Get("/enclave/ready", handle.Ready(appReady))
+	} else {
+		close(appReady)
 	}
 	r.Get("/enclave/hashes", handle.Hashes(hashes))
 	r.Post("/enclave/hash", handle.AppHash(hashes.SetAppHash))
