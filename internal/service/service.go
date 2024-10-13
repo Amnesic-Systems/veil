@@ -130,10 +130,7 @@ func NewIntSrv(
 	addInternalRoutes(r, config, keys, hashes, appReady)
 
 	return &http.Server{
-		Addr: net.JoinHostPort(
-			config.IntHost,
-			config.IntPort,
-		),
+		Addr:    net.JoinHostPort("127.0.0.1", config.IntPort),
 		Handler: http.Handler(r),
 	}
 }
@@ -147,10 +144,7 @@ func NewExtSrv(
 	addExternalPublicRoutes(r, config, attester, auxFn)
 
 	return &http.Server{
-		Addr: net.JoinHostPort(
-			config.ExtPubHost,
-			config.ExtPubPort,
-		),
+		Addr:    net.JoinHostPort("0.0.0.0", config.ExtPubPort),
 		Handler: http.Handler(r),
 	}
 }

@@ -28,13 +28,11 @@ type Config struct {
 	// Internet but the EC2 host's proxy *does* forward Internet traffic to
 	// this port.  This field is required.
 	ExtPubPort string
-	ExtPubHost string
 
 	// IntPort contains the TCP port that the internal Web server should listen
 	// on, e.g., 8080.  This port is only reachable from within the enclave and
 	// is only used by the enclave application.  This field is required.
 	IntPort string
-	IntHost string
 
 	// Testing facilitates local testing by disabling safety checks that we
 	// would normally run on the enclave and by using the noop attester instead

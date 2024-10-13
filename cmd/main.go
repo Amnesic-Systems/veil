@@ -33,20 +33,10 @@ func parseFlags(out io.Writer, args []string) (*config.Config, error) {
 		false,
 		"enable debug logging",
 	)
-	extPubHost := fs.String(
-		"ext-pub-host",
-		"0.0.0.0",
-		"external public host",
-	)
 	extPubPort := fs.String(
 		"ext-pub-port",
 		defaultExtPubPort,
 		"external public port",
-	)
-	intHost := fs.String(
-		"int-host",
-		"localhost",
-		"internal host",
 	)
 	intPort := fs.String(
 		"int-port",
@@ -77,9 +67,7 @@ func parseFlags(out io.Writer, args []string) (*config.Config, error) {
 	// Build and validate the config.
 	return &config.Config{
 		Debug:      *debug,
-		ExtPubHost: *extPubHost,
 		ExtPubPort: *extPubPort,
-		IntHost:    *intHost,
 		IntPort:    *intPort,
 		Testing:    *enableTesting,
 		WaitForApp: *waitForApp,
