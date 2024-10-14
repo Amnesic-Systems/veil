@@ -26,7 +26,10 @@ func AuxFromServer(aux *enclave.AuxInfo) (h *Hashes, n *nonce.Nonce, err error) 
 		return nil, nil, errs.IsNil
 	}
 
-	n, _ = nonce.FromSlice(aux.Nonce[:nonce.Len])
+	n, err = nonce.FromSlice(aux.Nonce[:nonce.Len])
+	if err != nil {
+		return nil, nil, err
+	}
 
 	// Cut off null bytes.
 	idx := slices.Index(aux.PublicKey[:], 0x00)
