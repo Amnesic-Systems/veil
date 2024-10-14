@@ -14,8 +14,6 @@ import (
 // the enclave's attestation document for clients to verify.
 type Hashes struct {
 	sync.Mutex
-	// TODO: is this better off in models? model.AttestationHashes sounds less
-	// nice though
 	TlsKeyHash [sha256.Size]byte `json:"tls_key_hash"` // Always set.
 	AppKeyHash [sha256.Size]byte `json:"app_key_hash"` // Only set if the application has keys.
 }

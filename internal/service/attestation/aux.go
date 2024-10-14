@@ -1,7 +1,5 @@
 package attestation
 
-// TODO: does this belong in the enclave package?
-
 import (
 	"slices"
 

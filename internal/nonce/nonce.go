@@ -9,7 +9,8 @@ import (
 	"github.com/Amnesic-Systems/veil/internal/errs"
 )
 
-const Len = 20 // The length of a nonce in bytes.
+// Len is the length of a nonce in bytes.
+const Len = 20
 
 var (
 	// Accessing rand.Reader via variable facilitates mocking.
@@ -17,16 +18,18 @@ var (
 	errNotEnoughRead = errors.New("failed to read enough random bytes")
 )
 
+// Nonce is a random value that guarantees attestation document freshness.
 type Nonce [Len]byte
 
+// URLEncode returns the nonce as a URL-encoded string.
 func (n *Nonce) URLEncode() string {
 	return url.QueryEscape(
 		base64.StdEncoding.EncodeToString(n[:]),
 	)
 }
 
+// New creates a new nonce.
 func New() (*Nonce, error) {
-	// TODO: panic on error cause we may not be able to recover?
 	var newNonce Nonce
 	n, err := cryptoRead.Read(newNonce[:])
 	if err != nil {
@@ -38,6 +41,7 @@ func New() (*Nonce, error) {
 	return &newNonce, nil
 }
 
+// FromSlice turns a byte slice into a nonce.
 func FromSlice(s []byte) (*Nonce, error) {
 	if len(s) != Len {
 		return nil, errs.InvalidLength
