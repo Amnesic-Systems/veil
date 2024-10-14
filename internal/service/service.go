@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"crypto/sha256"
 	"crypto/tls"
 	"errors"
 	"log"
@@ -41,6 +42,7 @@ func Run(
 
 	// Initialize hashes for the attestation document.
 	hashes := new(attestation.Hashes)
+	hashes.SetTLSHash(util.AddrOf(sha256.Sum256(cert)))
 
 	// Initialize Web servers.
 	intSrv := newIntSrv(config, keys, hashes, appReady)

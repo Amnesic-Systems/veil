@@ -14,7 +14,6 @@ import (
 	"net/url"
 	"os"
 	"slices"
-	"strings"
 	"sync"
 	"syscall"
 	"testing"
@@ -277,7 +276,7 @@ func TestHashes(t *testing.T) {
 				body,
 			)
 		}
-		doGet = func() (*http.Response, error) {
+		doGet = func(_ io.Reader) (*http.Response, error) {
 			return testutil.Client.Get(intSrv("/enclave/hashes"))
 		}
 	)
@@ -285,26 +284,26 @@ func TestHashes(t *testing.T) {
 
 	cases := []struct {
 		name       string
-		method     string
+		reqFunc    func(io.Reader) (*http.Response, error)
 		toMarshal  any
 		wantCode   int
 		wantHashes *attestation.Hashes
 	}{
 		{
 			name:       "get empty hashes",
-			method:     http.MethodGet,
+			reqFunc:    doGet,
 			wantCode:   http.StatusOK,
 			wantHashes: new(attestation.Hashes),
 		},
 		{
 			name:      "post application hash",
-			method:    http.MethodPost,
+			reqFunc:   doPost,
 			toMarshal: hashes,
 			wantCode:  http.StatusOK,
 		},
 		{
 			name:       "get populated hashes",
-			method:     http.MethodGet,
+			reqFunc:    doGet,
 			wantCode:   http.StatusOK,
 			wantHashes: hashes,
 		},
@@ -312,16 +311,10 @@ func TestHashes(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			var b []byte
-			var resp *http.Response
-			var err error
-			if c.method == http.MethodGet {
-				resp, err = doGet()
-			} else {
-				b, err = json.Marshal(c.toMarshal)
-				require.NoError(t, err)
-				resp, err = doPost(bytes.NewReader(b))
-			}
+			// Either POST or GET the hashes.
+			reqBody, err := json.Marshal(c.toMarshal)
+			require.NoError(t, err)
+			resp, err := c.reqFunc(bytes.NewReader(reqBody))
 			require.NoError(t, err)
 			require.Equal(t, c.wantCode, resp.StatusCode)
 
@@ -334,13 +327,13 @@ func TestHashes(t *testing.T) {
 			gotBody, err := io.ReadAll(resp.Body)
 			require.NoError(t, err)
 			defer resp.Body.Close()
-			wantBody, err := json.Marshal(c.wantHashes)
-			require.NoError(t, err)
+			var gotHashes attestation.Hashes
+			require.NoError(t, json.Unmarshal(gotBody, &gotHashes))
 
-			require.Equal(t,
-				strings.TrimSpace(string(wantBody)),
-				strings.TrimSpace(string(gotBody)),
-			)
+			// Make sure that the application hashes match.
+			require.Equal(t, c.wantHashes.AppKeyHash, gotHashes.AppKeyHash)
+			// Make sure that the TLS certificate hash is set.
+			require.NotEmpty(t, gotHashes.TlsKeyHash)
 		})
 	}
 }
