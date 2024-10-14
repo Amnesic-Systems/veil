@@ -83,7 +83,7 @@ func startAllWebSrvs(
 	extSrv *http.Server,
 ) {
 	go func(srv *http.Server) {
-		log.Println("Starting internal web server.")
+		log.Printf("Starting internal web server at: %s", intSrv.Addr)
 		err := intSrv.ListenAndServe()
 		if err != nil && err != http.ErrServerClosed {
 			log.Fatalf("Error serving internal web server: %v", err)
@@ -94,7 +94,7 @@ func startAllWebSrvs(
 	<-ready
 
 	go func(srv *http.Server) {
-		log.Println("Starting external web server.")
+		log.Printf("Starting external web server at: %s", extSrv.Addr)
 		err := extSrv.ListenAndServeTLS("", "")
 		if err != nil && err != http.ErrServerClosed {
 			log.Fatalf("Error serving external web server: %v", err)
