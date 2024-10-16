@@ -36,12 +36,6 @@ func TestEncodeAndAttest(t *testing.T) {
 			wantStatus: http.StatusInternalServerError,
 		},
 		{
-			name:       "attestation error",
-			nonce:      "hJkjpaP/6cVT+vikk06HcN0aOdU=",
-			attester:   enclave.NewNitroAttester(),
-			wantStatus: http.StatusInternalServerError,
-		},
-		{
 			name:       "valid encoding",
 			nonce:      "hJkjpaP/6cVT+vikk06HcN0aOdU=",
 			status:     http.StatusOK,

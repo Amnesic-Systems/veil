@@ -18,7 +18,7 @@ func (*NoopAttester) Type() string {
 }
 
 func (*NoopAttester) Attest(aux *AuxInfo) (*AttestationDoc, error) {
-	a, err := json.Marshal(aux) // TODO: Nested json?
+	a, err := json.Marshal(aux)
 	if err != nil {
 		return nil, err
 	}

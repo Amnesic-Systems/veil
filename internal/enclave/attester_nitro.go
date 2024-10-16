@@ -2,6 +2,7 @@ package enclave
 
 import (
 	"errors"
+	"log"
 	"time"
 
 	"github.com/Amnesic-Systems/veil/internal/errs"
@@ -15,22 +16,31 @@ import (
 
 // NitroAttester implements the attester interface by drawing on the AWS Nitro
 // Enclave hypervisor.
-type NitroAttester struct{}
+type NitroAttester struct {
+	session *nsm.Session
+}
 
 // NewNitroAttester returns a new nitroAttester.
 func NewNitroAttester() Attester {
-	return new(NitroAttester)
+	var err error
+	attester := new(NitroAttester)
+
+	// Open a session to the Nitro Secure Module.
+	if attester.session, err = nsm.OpenDefaultSession(); err != nil {
+		log.Fatalf("Failed to open session: %v", err)
+	}
+
+	return attester
 }
 
 func (*NitroAttester) Type() string {
 	return "nitro"
 }
 
-func (*NitroAttester) Attest(aux *AuxInfo) (*AttestationDoc, error) {
+func (a *NitroAttester) Attest(aux *AuxInfo) (*AttestationDoc, error) {
 	var (
-		err     error
-		resp    response.Response
-		session *nsm.Session
+		err  error
+		resp response.Response
 	)
 
 	req := &request.Attestation{
@@ -39,13 +49,7 @@ func (*NitroAttester) Attest(aux *AuxInfo) (*AttestationDoc, error) {
 		PublicKey: aux.PublicKey[:],
 	}
 
-	// TODO: do this once, at object creation time?
-	if session, err = nsm.OpenDefaultSession(); err != nil {
-		return nil, err
-	}
-	defer session.Close()
-
-	if resp, err = session.Send(req); err != nil {
+	if resp, err = a.session.Send(req); err != nil {
 		return nil, err
 	}
 	if resp.Attestation == nil || resp.Attestation.Document == nil {
