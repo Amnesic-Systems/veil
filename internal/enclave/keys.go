@@ -1,4 +1,3 @@
-// TODO: Does this belong in the models/ package?
 package enclave
 
 import (

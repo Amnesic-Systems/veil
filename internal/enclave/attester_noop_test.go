@@ -1,19 +1,11 @@
 package enclave
 
 import (
-	"reflect"
 	"testing"
 
 	"github.com/Amnesic-Systems/veil/internal/nonce"
+	"github.com/stretchr/testify/require"
 )
-
-// TODO: move
-func assertEqual(t *testing.T, is, should interface{}) {
-	t.Helper()
-	if should != is {
-		t.Fatalf("Expected value\n%v\nbut got\n%v", should, is)
-	}
-}
 
 func TestSuccessfulVerification(t *testing.T) {
 	var (
@@ -31,16 +23,16 @@ func TestSuccessfulVerification(t *testing.T) {
 	)
 
 	attestation, err := a.Attest(origAux)
-	assertEqual(t, err, nil)
+	require.Nil(t, err)
 
 	aux, err := a.Verify(attestation.Doc, &nonce.Nonce{})
-	assertEqual(t, err, nil)
-	assertEqual(t, reflect.DeepEqual(origAux, aux), true)
+	require.Nil(t, err)
+	require.Equal(t, origAux, aux)
 }
 
 func TestFailedVerification(t *testing.T) {
 	var a = NewNoopAttester()
 
 	_, err := a.Verify([]byte(`"foo": "bar`), &nonce.Nonce{})
-	assertEqual(t, err == nil, false)
+	require.NotNil(t, err)
 }

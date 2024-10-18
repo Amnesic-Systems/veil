@@ -87,7 +87,7 @@ func Config(attester enclave.Attester, cfg *config.Config) http.HandlerFunc {
 func Hashes(hashes *attestation.Hashes) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		hashes.Lock()
-		defer hashes.Unlock() // TODO: make this better
+		defer hashes.Unlock()
 		encode(w, http.StatusOK, hashes)
 	}
 }
