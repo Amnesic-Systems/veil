@@ -11,6 +11,7 @@ import (
 
 	"github.com/Amnesic-Systems/veil/internal/config"
 	"github.com/Amnesic-Systems/veil/internal/enclave"
+	"github.com/Amnesic-Systems/veil/internal/errs"
 	"github.com/Amnesic-Systems/veil/internal/httputil"
 	"github.com/Amnesic-Systems/veil/internal/service/attestation"
 	"github.com/Amnesic-Systems/veil/internal/system"
@@ -27,9 +28,12 @@ func Run(
 ) {
 	var appReady = make(chan struct{})
 
-	// Run basic safety checks before starting.
+	// Run safety checks and setup tasks before starting.
 	if err := checkSystemSafety(config); err != nil {
 		log.Fatalf("Failed safety check: %v", err)
+	}
+	if err := setupSystem(); err != nil {
+		log.Fatalf("Failed to set up system: %v", err)
 	}
 
 	// Initialize the enclave keys for enclave synchronization.
@@ -64,7 +68,8 @@ func Run(
 	log.Println("Exiting.")
 }
 
-func checkSystemSafety(config *config.Config) error {
+func checkSystemSafety(config *config.Config) (err error) {
+	defer errs.Wrap(&err, "failed system safety check")
 	if config.Testing {
 		return nil
 	}
@@ -76,6 +81,12 @@ func checkSystemSafety(config *config.Config) error {
 		return errors.New("system does not have minimum desired kernel version")
 	}
 	return nil
+}
+
+func setupSystem() (err error) {
+	defer errs.Wrap(&err, "failed to set up system")
+
+	return system.SetupLo()
 }
 
 func startAllWebSrvs(

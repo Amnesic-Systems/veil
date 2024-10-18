@@ -2,14 +2,37 @@ package system
 
 import (
 	"log"
+	"net"
 	"os"
 	"syscall"
+
+	"github.com/milosgajdos/tenus"
+
+	"github.com/Amnesic-Systems/veil/internal/errs"
 )
 
 const (
 	pathToRNG = "/sys/devices/virtual/misc/hw_random/rng_current"
 	wantRNG   = "nsm-hwrng"
 )
+
+// SetupLo sets up the loopback interface.
+func SetupLo() (err error) {
+	defer errs.Wrap(&err, "failed to configure loopback interface")
+
+	link, err := tenus.NewLinkFrom("lo")
+	if err != nil {
+		return err
+	}
+	addr, network, err := net.ParseCIDR("127.0.0.1/8")
+	if err != nil {
+		return err
+	}
+	if err = link.SetLinkIp(addr, network); err != nil {
+		return err
+	}
+	return link.SetLinkUp()
+}
 
 // HasSecureRNG checks if the enclave is configured to use the Nitro hardware
 // RNG. This was suggested in:
