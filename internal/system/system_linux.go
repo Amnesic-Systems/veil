@@ -1,12 +1,17 @@
 package system
 
 import (
+	"errors"
 	"log"
 	"net"
 	"os"
 	"syscall"
+	"unsafe"
 
+	"github.com/hf/nsm"
+	"github.com/hf/nsm/request"
 	"github.com/milosgajdos/tenus"
+	"golang.org/x/sys/unix"
 
 	"github.com/Amnesic-Systems/veil/internal/errs"
 )
@@ -15,6 +20,55 @@ const (
 	pathToRNG = "/sys/devices/virtual/misc/hw_random/rng_current"
 	wantRNG   = "nsm-hwrng"
 )
+
+func SeedRandomness() (err error) {
+	defer errs.Wrap(&err, "failed to seed entropy pool")
+
+	s, err := nsm.OpenDefaultSession()
+	if err != nil {
+		return err
+	}
+	defer func() { err = s.Close() }()
+
+	fd, err := os.OpenFile("/dev/random", os.O_WRONLY, os.ModePerm)
+	if err != nil {
+		return err
+	}
+	defer func() { err = fd.Close() }()
+
+	const seedLen = 2048
+	var w int
+	for total := 0; total < seedLen; {
+		res, err := s.Send(&request.GetRandom{})
+		if err != nil {
+			return err
+		}
+		if res.GetRandom == nil {
+			return errors.New("attribute GetRandom in NSM response is nil")
+		}
+		if len(res.GetRandom.Random) == 0 {
+			return errors.New("got no random bytes from NSM")
+		}
+
+		// Write NSM-provided random bytes to the system's entropy pool to seed
+		// it.
+		if w, err = fd.Write(res.GetRandom.Random); err != nil {
+			return err
+		}
+		total += w
+
+		// Tell the system to update its entropy count.
+		if _, _, errno := unix.Syscall(
+			unix.SYS_IOCTL,
+			uintptr(fd.Fd()),
+			uintptr(unix.RNDADDTOENTCNT),
+			uintptr(unsafe.Pointer(&w)),
+		); errno != 0 {
+			return errno
+		}
+	}
+	return nil
+}
 
 // SetupLo sets up the loopback interface.
 func SetupLo() (err error) {

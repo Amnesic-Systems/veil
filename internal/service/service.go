@@ -32,7 +32,7 @@ func Run(
 	if err := checkSystemSafety(config); err != nil {
 		log.Fatalf("Failed safety check: %v", err)
 	}
-	if err := setupSystem(); err != nil {
+	if err := setupSystem(config); err != nil {
 		log.Fatalf("Failed to set up system: %v", err)
 	}
 
@@ -83,9 +83,14 @@ func checkSystemSafety(config *config.Config) (err error) {
 	return nil
 }
 
-func setupSystem() (err error) {
+func setupSystem(config *config.Config) (err error) {
 	defer errs.Wrap(&err, "failed to set up system")
 
+	if !config.Testing {
+		if err := system.SeedRandomness(); err != nil {
+			return err
+		}
+	}
 	return system.SetupLo()
 }
 
