@@ -101,9 +101,14 @@ func run(ctx context.Context, out io.Writer, args []string) (err error) {
 	}
 
 	// Initialize dependencies and start the service.
-	attester := enclave.NewNitroAttester()
+	var attester enclave.Attester
 	if cfg.Testing {
 		attester = enclave.NewNoopAttester()
+	} else {
+		attester, err = enclave.NewNitroAttester()
+		if err != nil {
+			return err
+		}
 	}
 	service.Run(ctx, cfg, attester, tunnel.NewNoop())
 	return nil

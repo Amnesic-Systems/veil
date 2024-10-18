@@ -2,7 +2,6 @@ package enclave
 
 import (
 	"errors"
-	"log"
 	"time"
 
 	"github.com/Amnesic-Systems/veil/internal/errs"
@@ -21,16 +20,15 @@ type NitroAttester struct {
 }
 
 // NewNitroAttester returns a new nitroAttester.
-func NewNitroAttester() Attester {
-	var err error
-	attester := new(NitroAttester)
+func NewNitroAttester() (attester Attester, err error) {
+	defer errs.Wrap(&err, "failed to create nitro attester")
+	a := new(NitroAttester)
 
 	// Open a session to the Nitro Secure Module.
-	if attester.session, err = nsm.OpenDefaultSession(); err != nil {
-		log.Fatalf("Failed to open session: %v", err)
+	if a.session, err = nsm.OpenDefaultSession(); err != nil {
+		return nil, err
 	}
-
-	return attester
+	return a, nil
 }
 
 func (*NitroAttester) Type() string {
