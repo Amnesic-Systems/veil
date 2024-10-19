@@ -8,8 +8,10 @@ import (
 	"github.com/Amnesic-Systems/veil/internal/nonce"
 )
 
+type AuxFunc func(*nonce.Nonce) *enclave.AuxInfo
+
 // AuxToClient returns an enclave.AuxFunc that embeds the given hashes.
-func AuxToClient(a *Hashes) enclave.AuxFunc {
+func AuxToClient(a *Hashes) AuxFunc {
 	return func(n *nonce.Nonce) *enclave.AuxInfo {
 		var aux = new(enclave.AuxInfo)
 		copy(aux.PublicKey[:], a.Serialize())

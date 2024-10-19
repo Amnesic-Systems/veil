@@ -28,8 +28,6 @@ type AttestationDoc struct {
 	Doc  []byte `json:"attestation_document"`
 }
 
-type AuxFunc func(*nonce.Nonce) *AuxInfo
-
 type AuxInfo struct {
 	PublicKey [userDataLen]byte `json:"workers_nonce"`
 	UserData  [userDataLen]byte `json:"leaders_nonce"`

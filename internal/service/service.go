@@ -151,7 +151,7 @@ func newIntSrv(
 func newExtSrv(
 	config *config.Config,
 	attester enclave.Attester,
-	auxFn enclave.AuxFunc,
+	auxFn attestation.AuxFunc,
 ) *http.Server {
 	r := chi.NewRouter()
 	addExternalPublicRoutes(r, config, attester, auxFn)

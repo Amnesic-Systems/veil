@@ -137,7 +137,7 @@ func Ready(ready chan struct{}) http.HandlerFunc {
 
 func Attestation(
 	attester enclave.Attester,
-	makeAuxInfo enclave.AuxFunc,
+	makeAuxInfo attestation.AuxFunc,
 ) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		n, err := httputil.ExtractNonce(r)

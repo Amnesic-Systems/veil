@@ -21,7 +21,7 @@ func addExternalPublicRoutes(
 	r *chi.Mux,
 	config *config.Config,
 	attester enclave.Attester,
-	auxFn enclave.AuxFunc,
+	auxFn attestation.AuxFunc,
 ) {
 	setupMiddlewares(r, config)
 
