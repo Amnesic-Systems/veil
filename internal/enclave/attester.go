@@ -15,7 +15,6 @@ const (
 )
 
 var (
-	errPCRMismatch   = errors.New("platform configuration registers differ")
 	errNonceMismatch = errors.New("nonce does not match")
 
 	// Check at compile-time if types implement the attester interface.
