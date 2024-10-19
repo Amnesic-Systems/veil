@@ -86,10 +86,13 @@ func checkSystemSafety(config *config.Config) (err error) {
 func setupSystem(config *config.Config) (err error) {
 	defer errs.Wrap(&err, "failed to set up system")
 
-	if !config.Testing {
-		if err := system.SeedRandomness(); err != nil {
-			return err
-		}
+	// GitHub Actions won't allow us to set up the lo interface.
+	if config.Testing {
+		return nil
+	}
+
+	if err := system.SeedRandomness(); err != nil {
+		return err
 	}
 	return system.SetupLo()
 }
