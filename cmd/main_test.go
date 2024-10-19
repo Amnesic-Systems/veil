@@ -253,7 +253,7 @@ func TestAttestation(t *testing.T) {
 			require.NoError(t, json.Unmarshal(body, &a))
 
 			// "Verify" the attestation document using our noop attester.
-			aux, err := enclave.NewNoopAttester().Verify(a.Doc, c.nonce)
+			aux, err := enclave.NewNoopAttester().Verify(&a, c.nonce)
 			require.NoError(t, err, errFromBody(t, resp))
 
 			// Ensure that the recovered nonce matches what we sent.

@@ -14,7 +14,7 @@ func NewNoopAttester() Attester {
 }
 
 func (*NoopAttester) Type() string {
-	return "noop"
+	return typeNoop
 }
 
 func (*NoopAttester) Attest(aux *AuxInfo) (*AttestationDoc, error) {
@@ -23,14 +23,14 @@ func (*NoopAttester) Attest(aux *AuxInfo) (*AttestationDoc, error) {
 		return nil, err
 	}
 	return &AttestationDoc{
-		Type: "noop",
+		Type: typeNoop,
 		Doc:  a,
 	}, nil
 }
 
-func (*NoopAttester) Verify(a Attestation, n *nonce.Nonce) (*AuxInfo, error) {
+func (*NoopAttester) Verify(a *AttestationDoc, n *nonce.Nonce) (*AuxInfo, error) {
 	var aux = new(AuxInfo)
-	if err := json.Unmarshal(a, &aux); err != nil {
+	if err := json.Unmarshal(a.Doc, &aux); err != nil {
 		return nil, err
 	}
 	return aux, nil

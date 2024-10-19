@@ -28,6 +28,10 @@ func (n *Nonce) URLEncode() string {
 	)
 }
 
+func (n *Nonce) ToSlice() []byte {
+	return n[:]
+}
+
 // New creates a new nonce.
 func New() (*Nonce, error) {
 	var newNonce Nonce

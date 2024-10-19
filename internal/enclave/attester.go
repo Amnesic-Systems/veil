@@ -6,9 +6,13 @@ import (
 	"github.com/Amnesic-Systems/veil/internal/nonce"
 )
 
-// See page 65 of the AWS Nitro Enclaves user guide for reference:
-// https://docs.aws.amazon.com/pdfs/enclaves/latest/user/enclaves-user.pdf
-const userDataLen = 1024
+const (
+	// See page 65 of the AWS Nitro Enclaves user guide for reference:
+	// https://docs.aws.amazon.com/pdfs/enclaves/latest/user/enclaves-user.pdf
+	userDataLen = 1024
+	typeNoop    = "noop"
+	typeNitro   = "nitro"
+)
 
 var (
 	errPCRMismatch   = errors.New("platform configuration registers differ")
@@ -35,17 +39,11 @@ type AuxInfo struct {
 	Nonce     [userDataLen]byte `json:"public_key"`
 }
 
-func ToAuxField(s []byte) [userDataLen]byte {
-	var a [userDataLen]byte
-	copy(a[:], s)
-	return a
-}
-
 // Attester defines functions for the creation and verification of attestation
 // documents. Making this an interface helps with testing: It allows us to
 // implement a dummy attester that works without the AWS Nitro hypervisor.
 type Attester interface {
 	Type() string
 	Attest(*AuxInfo) (*AttestationDoc, error)
-	Verify(Attestation, *nonce.Nonce) (*AuxInfo, error)
+	Verify(*AttestationDoc, *nonce.Nonce) (*AuxInfo, error)
 }

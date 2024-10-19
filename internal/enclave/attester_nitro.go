@@ -10,7 +10,6 @@ import (
 	"github.com/hf/nitrite"
 	"github.com/hf/nsm"
 	"github.com/hf/nsm/request"
-	"github.com/hf/nsm/response"
 )
 
 // NitroAttester implements the attester interface by drawing on the AWS Nitro
@@ -32,66 +31,65 @@ func NewNitroAttester() (attester Attester, err error) {
 }
 
 func (*NitroAttester) Type() string {
-	return "nitro"
+	return typeNitro
 }
 
-func (a *NitroAttester) Attest(aux *AuxInfo) (*AttestationDoc, error) {
-	var (
-		err  error
-		resp response.Response
-	)
+func (a *NitroAttester) Attest(aux *AuxInfo) (_ *AttestationDoc, err error) {
+	defer errs.Wrap(&err, "failed to create attestation document")
+
+	if aux == nil {
+		return nil, errors.New("aux info is nil")
+	}
 
 	req := &request.Attestation{
 		Nonce:     aux.Nonce[:],
 		UserData:  aux.UserData[:],
 		PublicKey: aux.PublicKey[:],
 	}
-
-	if resp, err = a.session.Send(req); err != nil {
+	resp, err := a.session.Send(req)
+	if err != nil {
 		return nil, err
 	}
 	if resp.Attestation == nil || resp.Attestation.Document == nil {
-		return nil, errors.New("not good")
+		return nil, errors.New("required fields missing in attestation response")
 	}
+
 	return &AttestationDoc{
-		Type: "nitro",
+		Type: typeNitro,
 		Doc:  resp.Attestation.Document,
 	}, nil
 }
 
-func (*NitroAttester) Verify(a Attestation, ourNonce *nonce.Nonce) (_ *AuxInfo, err error) {
+func (a *NitroAttester) Verify(doc *AttestationDoc, ourNonce *nonce.Nonce) (_ *AuxInfo, err error) {
 	defer errs.Wrap(&err, "failed to verify attestation document")
 
-	// First, verify the remote enclave's attestation document.
+	if doc == nil {
+		return nil, errors.New("attestation document is nil")
+	}
+	if doc.Type != a.Type() {
+		return nil, errors.New("attestation document type mismatch")
+	}
+
+	// First, verify the attestation document.
 	opts := nitrite.VerifyOptions{CurrentTime: time.Now().UTC()}
-	their, err := nitrite.Verify(a, opts)
+	res, err := nitrite.Verify(doc.Doc, opts)
 	if err != nil {
 		return nil, err
 	}
 
-	// Verify that the remote enclave's PCR values (e.g., the image ID) are
-	// identical to ours.
-	ourPCRs, err := getPCRs()
+	// Verify that the attestation document contains the nonce that we may have
+	// asked it to embed.
+	docNonce, err := nonce.FromSlice(res.Document.Nonce)
 	if err != nil {
 		return nil, err
 	}
-	if !ourPCRs.Equal(their.Document.PCRs) {
-		return nil, errPCRMismatch
-	}
-
-	// Verify that the remote enclave's attestation document contains the nonce
-	// that we asked it to embed.
-	theirNonce, err := nonce.FromSlice(their.Document.Nonce)
-	if err != nil {
-		return nil, err
-	}
-	if *ourNonce != *theirNonce {
+	if ourNonce != nil && *ourNonce != *docNonce {
 		return nil, errNonceMismatch
 	}
 
 	return &AuxInfo{
-		Nonce:     [1024]byte(their.Document.Nonce),
-		UserData:  [1024]byte(their.Document.UserData),
-		PublicKey: [1024]byte(their.Document.PublicKey),
+		Nonce:     [userDataLen]byte(res.Document.Nonce),
+		UserData:  [userDataLen]byte(res.Document.UserData),
+		PublicKey: [userDataLen]byte(res.Document.PublicKey),
 	}, nil
 }
