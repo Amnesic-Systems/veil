@@ -8,9 +8,17 @@ import (
 )
 
 func TestGetPCRs(t *testing.T) {
-	_, err := getPCRs()
-	// We expect an error when asking for PCRs outside of an enclave.
-	require.Error(t, err)
+	if !IsEnclave() {
+		t.Skip("skipping test; not running in an enclave")
+	}
+
+	pcrs1, err := getPCRs()
+	require.NoError(t, err)
+
+	pcrs2, err := getPCRs()
+	require.NoError(t, err)
+
+	assert.False(t, pcrs1.Equal(pcrs2))
 }
 
 func TestPCRsEqual(t *testing.T) {
