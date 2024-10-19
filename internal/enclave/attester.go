@@ -23,12 +23,10 @@ var (
 	_ Attester = (*NoopAttester)(nil)
 )
 
-type Attestation []byte
-
 // AttestationDoc holds the enclave's attestation document.
 type AttestationDoc struct {
-	Type string      `json:"type"`
-	Doc  Attestation `json:"attestation_document"`
+	Type string `json:"type"`
+	Doc  []byte `json:"attestation_document"`
 }
 
 type AuxFunc func(*nonce.Nonce) *AuxInfo
