@@ -29,6 +29,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func withFlags(flag ...string) []string {
+	var f []string
+	if !enclave.IsEnclave() {
+		f = append(f, "-insecure")
+	}
+	return append(f, flag...)
+}
+
 func waitForSvc(t *testing.T, url string) error {
 	var (
 		start    = time.Now()
@@ -128,7 +136,7 @@ func TestHelp(t *testing.T) {
 }
 
 func TestPages(t *testing.T) {
-	defer stopSvc(startSvc(t, []string{"-insecure"}))
+	defer stopSvc(startSvc(t, withFlags()))
 
 	cases := []struct {
 		name     string
@@ -164,7 +172,7 @@ func TestPages(t *testing.T) {
 }
 
 func TestReadyHandler(t *testing.T) {
-	defer stopSvc(startSvc(t, []string{"-insecure", "-wait-for-app"}))
+	defer stopSvc(startSvc(t, withFlags("-wait-for-app")))
 
 	cases := []struct {
 		name     string
@@ -211,7 +219,7 @@ func TestReadyHandler(t *testing.T) {
 }
 
 func TestAttestation(t *testing.T) {
-	defer stopSvc(startSvc(t, []string{"-insecure"}))
+	defer stopSvc(startSvc(t, withFlags()))
 
 	cases := []struct {
 		name     string
@@ -265,7 +273,7 @@ func TestAttestation(t *testing.T) {
 }
 
 func TestHashes(t *testing.T) {
-	defer stopSvc(startSvc(t, []string{"-insecure"}))
+	defer stopSvc(startSvc(t, withFlags()))
 
 	var (
 		hashes = new(attestation.Hashes)
@@ -347,7 +355,7 @@ func TestReverseProxy(t *testing.T) {
 		},
 	))
 	defer srv.Close()
-	defer stopSvc(startSvc(t, []string{"-insecure", "-app-web-srv", srv.URL}))
+	defer stopSvc(startSvc(t, withFlags("-app-web-srv", srv.URL)))
 
 	cases := []struct {
 		name     string
