@@ -9,3 +9,9 @@ func IsEnclave() bool {
 	}
 	return false
 }
+
+func ToAuxField(s []byte) [userDataLen]byte {
+	var a [userDataLen]byte
+	copy(a[:], s)
+	return a
+}
