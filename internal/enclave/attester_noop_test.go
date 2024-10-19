@@ -7,14 +7,13 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestType(t *testing.T) {
+	require.Equal(t, typeNoop, NewNoopAttester().Type())
+}
+
 func TestSuccessfulVerification(t *testing.T) {
 	var (
-		a = NewNoopAttester()
-		// // JSON objects are map[string]interface{} and numbers are float64.
-		// origAux = map[string]any{
-		// 	"Name": "John Doe",
-		// 	"Age":  float64(42),
-		// }
+		a       = NewNoopAttester()
 		origAux = &AuxInfo{
 			PublicKey: [userDataLen]byte{'a', 'b', 'c'},
 			UserData:  [userDataLen]byte{'d', 'e', 'f'},
