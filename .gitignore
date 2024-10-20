@@ -1,4 +1,4 @@
 .vscode
 cmd/veil
-internal/cover.html
-internal/cover.out
+cover.html
+cover.out
