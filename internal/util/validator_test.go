@@ -30,12 +30,14 @@ func TestSpringErrs(t *testing.T) {
 			want: "foo: bar\n",
 		},
 		{
-			name: "multiple errors",
+			name: "sorted errors",
 			errs: map[string]string{
-				"foo": "bar",
-				"baz": "qux",
+				"a": "foo",
+				"b": "bar",
+				"c": "baz",
+				"d": "qux",
 			},
-			want: "foo: bar\nbaz: qux\n",
+			want: "a: foo\nb: bar\nc: baz\nd: qux\n",
 		},
 	}
 
