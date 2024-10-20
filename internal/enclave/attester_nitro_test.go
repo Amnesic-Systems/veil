@@ -18,8 +18,7 @@ func TestNitroAttest(t *testing.T) {
 	if !IsEnclave() {
 		t.Skip("skipping test; not running in an enclave")
 	}
-	attester, err := NewNitroAttester()
-	require.NoError(t, err)
+	attester := NewNitroAttester()
 
 	cases := []struct {
 		name    string
@@ -59,9 +58,7 @@ func TestNitroVerify(t *testing.T) {
 		t.Skip("skipping test; not running in an enclave")
 	}
 
-	attester, err := NewNitroAttester()
-	require.NoError(t, err)
-
+	attester := NewNitroAttester()
 	getDoc := func(t *testing.T, n *nonce.Nonce) *AttestationDoc {
 		doc, err := attester.Attest(&AuxInfo{Nonce: ToAuxField(n.ToSlice())})
 		require.NoError(t, err)

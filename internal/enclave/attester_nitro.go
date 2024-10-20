@@ -19,15 +19,8 @@ type NitroAttester struct {
 }
 
 // NewNitroAttester returns a new nitroAttester.
-func NewNitroAttester() (attester Attester, err error) {
-	defer errs.Wrap(&err, "failed to create nitro attester")
-	a := new(NitroAttester)
-
-	// Open a session to the Nitro Secure Module.
-	if a.session, err = nsm.OpenDefaultSession(); err != nil {
-		return nil, err
-	}
-	return a, nil
+func NewNitroAttester() Attester {
+	return new(NitroAttester)
 }
 
 func (*NitroAttester) Type() string {
@@ -36,6 +29,13 @@ func (*NitroAttester) Type() string {
 
 func (a *NitroAttester) Attest(aux *AuxInfo) (_ *AttestationDoc, err error) {
 	defer errs.Wrap(&err, "failed to create attestation document")
+
+	if a.session == nil {
+		// Open a session to the Nitro Secure Module.
+		if a.session, err = nsm.OpenDefaultSession(); err != nil {
+			return nil, err
+		}
+	}
 
 	if aux == nil {
 		return nil, errors.New("aux info is nil")
