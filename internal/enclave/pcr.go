@@ -14,12 +14,7 @@ type pcr map[uint][]byte
 func getPCRs() (_ pcr, err error) {
 	defer errs.Wrap(&err, "failed to get PCRs")
 
-	attester, err := NewNitroAttester()
-	if err != nil {
-		return nil, err
-	}
-
-	attestation, err := attester.Attest(&AuxInfo{})
+	attestation, err := NewNitroAttester().Attest(&AuxInfo{})
 	if err != nil {
 		return nil, err
 	}

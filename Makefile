@@ -1,5 +1,5 @@
 prog = veil
-prog_dir = cmd
+prog_dir = cmd/veil
 godeps = go.mod go.sum $(shell find cmd internal -name "*.go" -type f)
 
 cover_out = cover.out
