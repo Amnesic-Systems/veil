@@ -5,6 +5,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"strings"
 	"syscall"
 	"unsafe"
 
@@ -98,7 +99,7 @@ func HasSecureRNG() bool {
 		return false
 	}
 	log.Printf("Have RNG: %s", haveRNG)
-	return string(haveRNG) == wantRNG
+	return strings.TrimSpace(string(haveRNG)) == wantRNG
 }
 
 // HasSecureKernelVersion checks if the system is running a kernel version that
