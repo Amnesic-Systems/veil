@@ -102,10 +102,12 @@ func run(ctx context.Context, out io.Writer, args []string) (err error) {
 
 	// Initialize dependencies and start the service.
 	var attester enclave.Attester = enclave.NewNitroAttester()
+	var tunneler tunnel.Mechanism = tunnel.NewVSOCK()
 	if cfg.Testing {
 		attester = enclave.NewNoopAttester()
+		tunneler = tunnel.NewNoop()
 	}
-	service.Run(ctx, cfg, attester, tunnel.NewNoop())
+	service.Run(ctx, cfg, attester, tunneler)
 	return nil
 }
 
