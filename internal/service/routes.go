@@ -20,14 +20,13 @@ func setupMiddlewares(r *chi.Mux, config *config.Config) {
 func addExternalPublicRoutes(
 	r *chi.Mux,
 	config *config.Config,
-	attester enclave.Attester,
-	auxFn attestation.AuxFunc,
+	builder *attestation.Builder,
 ) {
 	setupMiddlewares(r, config)
 
 	r.Get("/enclave", handle.Index(config))
-	r.Get("/enclave/config", handle.Config(attester, config))
-	r.Get("/enclave/attestation", handle.Attestation(attester, auxFn))
+	r.Get("/enclave/config", handle.Config(builder, config))
+	r.Get("/enclave/attestation", handle.Attestation(builder))
 
 	// Set up reverse proxy for the application' Web server.
 	if config.AppWebSrv != nil {

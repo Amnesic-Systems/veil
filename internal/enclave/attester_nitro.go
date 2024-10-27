@@ -27,6 +27,26 @@ func (*NitroAttester) Type() string {
 	return typeNitro
 }
 
+// convertTo converts our representation of an auxiliary field to the nsm
+// package's representation.
+func convertTo(auxField *[AuxFieldLen]byte) []byte {
+	if auxField == nil {
+		return nil
+	}
+	return auxField[:]
+}
+
+// convertFrom converts the nsm package's representation of an auxiliary field
+// to our representation.
+func convertFrom(auxField []byte) *[AuxFieldLen]byte {
+	if auxField == nil {
+		return nil
+	}
+	var res [AuxFieldLen]byte
+	copy(res[:], auxField)
+	return &res
+}
+
 func (a *NitroAttester) Attest(aux *AuxInfo) (_ *AttestationDoc, err error) {
 	defer errs.Wrap(&err, "failed to create attestation document")
 
@@ -42,9 +62,9 @@ func (a *NitroAttester) Attest(aux *AuxInfo) (_ *AttestationDoc, err error) {
 	}
 
 	req := &request.Attestation{
-		Nonce:     aux.Nonce[:],
-		UserData:  aux.UserData[:],
-		PublicKey: aux.PublicKey[:],
+		Nonce:     convertTo(aux.Nonce),
+		UserData:  convertTo(aux.UserData),
+		PublicKey: convertTo(aux.PublicKey),
 	}
 	resp, err := a.session.Send(req)
 	if err != nil {
@@ -88,8 +108,8 @@ func (a *NitroAttester) Verify(doc *AttestationDoc, ourNonce *nonce.Nonce) (_ *A
 	}
 
 	return &AuxInfo{
-		Nonce:     [userDataLen]byte(res.Document.Nonce),
-		UserData:  [userDataLen]byte(res.Document.UserData),
-		PublicKey: [userDataLen]byte(res.Document.PublicKey),
+		Nonce:     convertFrom(res.Document.Nonce),
+		UserData:  convertFrom(res.Document.UserData),
+		PublicKey: convertFrom(res.Document.PublicKey),
 	}, nil
 }

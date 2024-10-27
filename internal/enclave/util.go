@@ -10,8 +10,8 @@ func IsEnclave() bool {
 	return false
 }
 
-func ToAuxField(s []byte) [userDataLen]byte {
-	var a [userDataLen]byte
+func ToAuxField(s []byte) *[AuxFieldLen]byte {
+	var a [AuxFieldLen]byte
 	copy(a[:], s)
-	return a
+	return &a
 }

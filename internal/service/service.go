@@ -50,7 +50,11 @@ func Run(
 
 	// Initialize Web servers.
 	intSrv := newIntSrv(config, keys, hashes, appReady)
-	extSrv := newExtSrv(config, attester, attestation.AuxToClient(hashes))
+	builder := attestation.NewBuilder(
+		attester,
+		attestation.WithHashes(hashes),
+	)
+	extSrv := newExtSrv(config, builder)
 	extSrv.TLSConfig = &tls.Config{
 		Certificates: []tls.Certificate{
 			util.Must(tls.X509KeyPair(cert, key)),
@@ -150,11 +154,10 @@ func newIntSrv(
 
 func newExtSrv(
 	config *config.Config,
-	attester enclave.Attester,
-	auxFn attestation.AuxFunc,
+	builder *attestation.Builder,
 ) *http.Server {
 	r := chi.NewRouter()
-	addExternalPublicRoutes(r, config, attester, auxFn)
+	addExternalPublicRoutes(r, config, builder)
 
 	return &http.Server{
 		Addr:    net.JoinHostPort("0.0.0.0", config.ExtPubPort),

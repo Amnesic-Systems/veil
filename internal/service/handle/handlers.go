@@ -10,7 +10,6 @@ import (
 	"sync"
 
 	"github.com/Amnesic-Systems/veil/internal/config"
-	"github.com/Amnesic-Systems/veil/internal/enclave"
 	"github.com/Amnesic-Systems/veil/internal/httperr"
 	"github.com/Amnesic-Systems/veil/internal/httputil"
 	"github.com/Amnesic-Systems/veil/internal/service/attestation"
@@ -43,9 +42,12 @@ func Index(cfg *config.Config) http.HandlerFunc {
 }
 
 // Config returns the enclave's configuration.
-func Config(attester enclave.Attester, cfg *config.Config) http.HandlerFunc {
+func Config(
+	builder *attestation.Builder,
+	cfg *config.Config,
+) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		encodeAndAttest(w, r, http.StatusOK, attester, cfg)
+		encodeAndAttest(w, r, http.StatusOK, builder, cfg)
 	}
 }
 
@@ -95,7 +97,10 @@ func Hashes(hashes *attestation.Hashes) http.HandlerFunc {
 func AppHash(
 	setAppHash func(*[sha256.Size]byte),
 ) http.HandlerFunc {
-	b := util.Must(json.Marshal(new(attestation.Hashes)))
+	b := util.Must(json.Marshal(&attestation.Hashes{
+		TlsKeyHash: util.AddrOf(sha256.Sum256([]byte("foo"))),
+		AppKeyHash: util.AddrOf(sha256.Sum256([]byte("bar"))),
+	}))
 	maxHashesLen := len(b) + 1 // Allow extra byte for the \n.
 
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -111,7 +116,7 @@ func AppHash(
 			encode(w, http.StatusBadRequest, httperr.New(err.Error()))
 			return
 		}
-		setAppHash(util.AddrOf(theirHashes.AppKeyHash))
+		setAppHash(theirHashes.AppKeyHash)
 	}
 }
 
@@ -136,8 +141,7 @@ func Ready(ready chan struct{}) http.HandlerFunc {
 }
 
 func Attestation(
-	attester enclave.Attester,
-	makeAuxInfo attestation.AuxFunc,
+	builder *attestation.Builder,
 ) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		n, err := httputil.ExtractNonce(r)
@@ -146,7 +150,7 @@ func Attestation(
 			return
 		}
 
-		attestation, err := attester.Attest(makeAuxInfo(n))
+		attestation, err := builder.Attest(attestation.WithNonce(n))
 		if err != nil {
 			encode(w, http.StatusInternalServerError, httperr.New(err.Error()))
 			return

@@ -11,95 +11,125 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestDeSerialization(t *testing.T) {
-	var (
-		origHashes = new(Hashes)
-	)
-	origHashes.SetAppHash(util.AddrOf(sha256.Sum256([]byte("foo"))))
-	origHashes.SetTLSHash(util.AddrOf(sha256.Sum256([]byte("bar"))))
+func TestGetters(t *testing.T) {
+	n := util.Must(nonce.New())
+	s := util.AddrOf(sha256.Sum256([]byte("foo")))
+	h1 := &Hashes{TlsKeyHash: util.AddrOf(sha256.Sum256([]byte("foo")))}
+	h2 := &Hashes{
+		TlsKeyHash: util.AddrOf(sha256.Sum256([]byte("foo"))),
+		AppKeyHash: util.AddrOf(sha256.Sum256([]byte("bar"))),
+	}
 
-	hashes, err := DeserializeHashes(origHashes.Serialize())
-	require.NoError(t, err)
-	require.Equal(t, origHashes, hashes)
-}
-
-func TestFailedDeserialization(t *testing.T) {
 	cases := []struct {
-		name string
-		in   []byte
+		name       string
+		aux        *enclave.AuxInfo
+		wantNonce  *nonce.Nonce
+		wantSHA    *[sha256.Size]byte
+		wantHashes *Hashes
+		wantErr    error
 	}{
 		{
-			name: "nil",
-			in:   nil,
+			name:    "no fields",
+			aux:     &enclave.AuxInfo{},
+			wantErr: errs.IsNil,
 		},
 		{
-			name: "no separator",
-			in:   []byte("sha256:foo"),
+			name: "all fields, some hashes",
+			aux: &enclave.AuxInfo{
+				Nonce:     enclave.ToAuxField(n.ToSlice()),
+				UserData:  enclave.ToAuxField(s[:]),
+				PublicKey: enclave.ToAuxField(h1.Serialize()),
+			},
+			wantNonce:  n,
+			wantSHA:    s,
+			wantHashes: h1,
 		},
 		{
-			name: "too many separators",
-			in:   []byte("sha256:foo;sha256:bar;sha256:baz"),
-		},
-		{
-			name: "invalid tls base64",
-			in:   []byte("sha256:123;sha256:456"),
-		},
-		{
-			name: "invalid app base64",
-			in:   []byte("sha256:Zm9vCg==;sha256:456"),
+			name: "all fields, all hashes",
+			aux: &enclave.AuxInfo{
+				Nonce:     enclave.ToAuxField(n.ToSlice()),
+				UserData:  enclave.ToAuxField(s[:]),
+				PublicKey: enclave.ToAuxField(h2.Serialize()),
+			},
+			wantNonce:  n,
+			wantSHA:    s,
+			wantHashes: h2,
 		},
 	}
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			_, err := DeserializeHashes(c.in)
-			require.ErrorIs(t, err, errs.InvalidFormat)
+			n, err := GetNonce(c.aux)
+			require.Equal(t, c.wantErr, err)
+			s, err := GetSHA256(c.aux)
+			require.Equal(t, c.wantErr, err)
+			h, err := GetHashes(c.aux)
+			require.Equal(t, c.wantErr, err)
+
+			require.Equal(t, c.wantNonce, n)
+			require.Equal(t, c.wantSHA, s)
+			require.Equal(t, c.wantHashes, h)
 		})
 	}
 }
 
-func TestAuxToFromServer(t *testing.T) {
-	var (
-		origHashes = new(Hashes)
-		origNonce  = util.Must(nonce.New())
-	)
-	origHashes.SetAppHash(util.AddrOf(sha256.Sum256([]byte("foo"))))
-	origHashes.SetTLSHash(util.AddrOf(sha256.Sum256([]byte("bar"))))
-
-	hashes, nonce, err := AuxFromServer(AuxToClient(origHashes)(origNonce))
-	require.NoError(t, err)
-
-	require.Equal(t, origHashes, hashes)
-	require.Equal(t, origNonce, nonce)
-}
-
-func TestAuxFromServerErrs(t *testing.T) {
-	_, _, err := AuxFromServer(nil)
-	require.ErrorIs(t, err, errs.IsNil)
+func TestBuilder(t *testing.T) {
+	attester := enclave.NewNoopAttester()
+	if enclave.IsEnclave() {
+		attester = enclave.NewNitroAttester()
+	}
+	nonce1, nonce2 := util.Must(nonce.New()), util.Must(nonce.New())
+	sha1, sha2 := sha256.Sum256([]byte("foo")), sha256.Sum256([]byte("bar"))
+	hashes1 := &Hashes{TlsKeyHash: util.AddrOf(sha256.Sum256([]byte("foo")))}
+	hashes2 := &Hashes{TlsKeyHash: util.AddrOf(sha256.Sum256([]byte("bar")))}
 
 	cases := []struct {
-		name    string
-		aux     *enclave.AuxInfo
-		wantErr error
+		name         string
+		initFields   []AuxField
+		attestFields []AuxField
+		wantAux      *enclave.AuxInfo
 	}{
 		{
-			name:    "aux info is nil",
-			aux:     nil,
-			wantErr: errs.IsNil,
+			name:    "empty",
+			wantAux: &enclave.AuxInfo{},
 		},
 		{
-			name: "invalid hashes",
-			aux: &enclave.AuxInfo{
-				PublicKey: [1024]byte{0x01},
+			name:       "nonce at initialization",
+			initFields: []AuxField{WithNonce(nonce1)},
+			wantAux:    &enclave.AuxInfo{Nonce: enclave.ToAuxField(nonce1.ToSlice())},
+		},
+		{
+			name:         "nonce at attestation",
+			attestFields: []AuxField{WithNonce(nonce1)},
+			wantAux:      &enclave.AuxInfo{Nonce: enclave.ToAuxField(nonce1.ToSlice())},
+		},
+		{
+			name:         "nonce being overwritten",
+			initFields:   []AuxField{WithNonce(nonce1)},
+			attestFields: []AuxField{WithNonce(nonce2)},
+			wantAux:      &enclave.AuxInfo{Nonce: enclave.ToAuxField(nonce2.ToSlice())},
+		},
+		{
+			name:         "everything overwritten",
+			initFields:   []AuxField{WithHashes(hashes1), WithNonce(nonce1), WithSHA256(sha1)},
+			attestFields: []AuxField{WithHashes(hashes2), WithNonce(nonce2), WithSHA256(sha2)},
+			wantAux: &enclave.AuxInfo{
+				Nonce:     enclave.ToAuxField(nonce2.ToSlice()),
+				PublicKey: enclave.ToAuxField(hashes2.Serialize()),
+				UserData:  enclave.ToAuxField(sha2[:]),
 			},
-			wantErr: errs.InvalidFormat,
 		},
 	}
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			_, _, err := AuxFromServer(c.aux)
-			require.ErrorIs(t, err, c.wantErr)
+			b := NewBuilder(attester, c.initFields...)
+			doc, err := b.Attest(c.attestFields...)
+			require.NoError(t, err)
+
+			aux, err := attester.Verify(doc, nil)
+			require.NoError(t, err)
+			require.Equal(t, c.wantAux, aux)
 		})
 	}
 }

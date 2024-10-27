@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func getNonce(t *testing.T) [userDataLen]byte {
+func getNonce(t *testing.T) *[AuxFieldLen]byte {
 	n, err := nonce.New()
 	require.NoError(t, err)
 	return ToAuxField(n.ToSlice())
