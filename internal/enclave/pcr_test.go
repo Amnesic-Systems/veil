@@ -15,10 +15,16 @@ func TestGetPCRs(t *testing.T) {
 	pcrs1, err := getPCRs()
 	require.NoError(t, err)
 
+	// PCRs for the enclave image file, the Linux kernel, and the application
+	// must always be set.
+	require.NotEmpty(t, pcrs1[0])
+	require.NotEmpty(t, pcrs1[1])
+	require.NotEmpty(t, pcrs1[2])
+
 	pcrs2, err := getPCRs()
 	require.NoError(t, err)
-
-	assert.False(t, pcrs1.Equal(pcrs2))
+	// PCRs should be the same across calls.
+	require.Equal(t, pcrs1, pcrs2)
 }
 
 func TestPCRsEqual(t *testing.T) {
