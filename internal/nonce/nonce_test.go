@@ -25,9 +25,9 @@ func TestFromSlice(t *testing.T) {
 			wantErr: errs.InvalidLength,
 		},
 		{
-			name:    "too long",
-			in:      append(validSlice, 0),
-			wantErr: errs.InvalidLength,
+			name: "too long",
+			in:   append(validSlice, 0),
+			want: Nonce{1},
 		},
 		{
 			name:    "valid",

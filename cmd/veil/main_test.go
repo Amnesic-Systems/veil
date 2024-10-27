@@ -221,6 +221,11 @@ func TestReadyHandler(t *testing.T) {
 func TestAttestation(t *testing.T) {
 	defer stopSvc(startSvc(t, withFlags()))
 
+	var attester enclave.Attester = enclave.NewNitroAttester()
+	if !enclave.IsEnclave() {
+		attester = enclave.NewNoopAttester()
+	}
+
 	cases := []struct {
 		name     string
 		url      string
@@ -261,7 +266,7 @@ func TestAttestation(t *testing.T) {
 			require.NoError(t, json.Unmarshal(body, &a))
 
 			// "Verify" the attestation document using our noop attester.
-			aux, err := enclave.NewNoopAttester().Verify(&a, c.nonce)
+			aux, err := attester.Verify(&a, c.nonce)
 			require.NoError(t, err, errFromBody(t, resp))
 
 			// Ensure that the recovered nonce matches what we sent.
