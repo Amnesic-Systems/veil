@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"net/url"
 
 	"github.com/Amnesic-Systems/veil/internal/errs"
@@ -48,7 +49,8 @@ func New() (*Nonce, error) {
 // FromSlice turns a byte slice into a nonce.
 func FromSlice(s []byte) (*Nonce, error) {
 	if len(s) < Len {
-		return nil, errs.InvalidLength
+		return nil, fmt.Errorf("%w: slice len is %d but need at least %d",
+			errs.InvalidLength, len(s), Len)
 	}
 
 	var n Nonce
