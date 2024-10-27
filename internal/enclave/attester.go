@@ -9,7 +9,7 @@ import (
 const (
 	// See page 65 of the AWS Nitro Enclaves user guide for reference:
 	// https://docs.aws.amazon.com/pdfs/enclaves/latest/user/enclaves-user.pdf
-	userDataLen = 1024
+	AuxFieldLen = 1024
 	typeNoop    = "noop"
 	typeNitro   = "nitro"
 )
@@ -29,9 +29,9 @@ type AttestationDoc struct {
 }
 
 type AuxInfo struct {
-	PublicKey [userDataLen]byte `json:"workers_nonce"`
-	UserData  [userDataLen]byte `json:"leaders_nonce"`
-	Nonce     [userDataLen]byte `json:"public_key"`
+	PublicKey *[AuxFieldLen]byte `json:"public_key"`
+	UserData  *[AuxFieldLen]byte `json:"user_data"`
+	Nonce     *[AuxFieldLen]byte `json:"nonce"`
 }
 
 // Attester defines functions for the creation and verification of attestation

@@ -7,9 +7,9 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/Amnesic-Systems/veil/internal/enclave"
 	"github.com/Amnesic-Systems/veil/internal/httperr"
 	"github.com/Amnesic-Systems/veil/internal/httputil"
+	"github.com/Amnesic-Systems/veil/internal/service/attestation"
 )
 
 const attestationHeader = "X-Veil-Attestation"
@@ -27,7 +27,7 @@ func encodeAndAttest[T any](
 	w http.ResponseWriter,
 	r *http.Request,
 	status int,
-	attester enclave.Attester,
+	builder *attestation.Builder,
 	v T,
 ) {
 	// Try to extract the client's nonce from the request. If this fails, abort
@@ -49,10 +49,10 @@ func encodeAndAttest[T any](
 	// Hash the JSON body and request an attestation document containing the
 	// hash and the client's nonce.
 	hash := sha256.Sum256(body)
-	attestation, err := attester.Attest(&enclave.AuxInfo{
-		Nonce:    enclave.ToAuxField(n[:]),
-		UserData: enclave.ToAuxField(hash[:]),
-	})
+	attestation, err := builder.Attest(
+		attestation.WithNonce(n),
+		attestation.WithSHA256(hash),
+	)
 	if err != nil {
 		encode(w, http.StatusInternalServerError, httperr.New("failed to attest HTTP request"))
 		return

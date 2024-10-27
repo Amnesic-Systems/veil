@@ -11,6 +11,7 @@ import (
 
 	"github.com/Amnesic-Systems/veil/internal/enclave"
 	"github.com/Amnesic-Systems/veil/internal/httperr"
+	"github.com/Amnesic-Systems/veil/internal/service/attestation"
 )
 
 func TestEncodeAndAttest(t *testing.T) {
@@ -18,7 +19,7 @@ func TestEncodeAndAttest(t *testing.T) {
 		name       string
 		nonce      string
 		status     int
-		attester   enclave.Attester
+		builder    *attestation.Builder
 		body       interface{}
 		wantBody   string
 		wantStatus int
@@ -39,7 +40,7 @@ func TestEncodeAndAttest(t *testing.T) {
 			name:       "valid encoding",
 			nonce:      "hJkjpaP/6cVT+vikk06HcN0aOdU=",
 			status:     http.StatusOK,
-			attester:   enclave.NewNoopAttester(),
+			builder:    attestation.NewBuilder(enclave.NewNoopAttester()),
 			body:       httperr.New("random error"),
 			wantBody:   `{"error":"random error"}`,
 			wantStatus: http.StatusOK,
@@ -54,7 +55,7 @@ func TestEncodeAndAttest(t *testing.T) {
 				fmt.Sprintf("/foo?nonce=%s", url.QueryEscape(c.nonce)),
 				nil,
 			)
-			encodeAndAttest(rec, req, c.status, c.attester, c.body)
+			encodeAndAttest(rec, req, c.status, c.builder, c.body)
 
 			resp := rec.Result()
 			require.Equal(t, c.wantStatus, resp.StatusCode, httperr.FromBody(resp))

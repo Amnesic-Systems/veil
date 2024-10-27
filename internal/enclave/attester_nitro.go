@@ -6,6 +6,7 @@ import (
 
 	"github.com/Amnesic-Systems/veil/internal/errs"
 	"github.com/Amnesic-Systems/veil/internal/nonce"
+	"github.com/Amnesic-Systems/veil/internal/util"
 
 	"github.com/hf/nitrite"
 	"github.com/hf/nsm"
@@ -88,8 +89,8 @@ func (a *NitroAttester) Verify(doc *AttestationDoc, ourNonce *nonce.Nonce) (_ *A
 	}
 
 	return &AuxInfo{
-		Nonce:     [userDataLen]byte(res.Document.Nonce),
-		UserData:  [userDataLen]byte(res.Document.UserData),
-		PublicKey: [userDataLen]byte(res.Document.PublicKey),
+		Nonce:     util.AddrOf([AuxFieldLen]byte(res.Document.Nonce)),
+		UserData:  util.AddrOf([AuxFieldLen]byte(res.Document.UserData)),
+		PublicKey: util.AddrOf([AuxFieldLen]byte(res.Document.PublicKey)),
 	}, nil
 }

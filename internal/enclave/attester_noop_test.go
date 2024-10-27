@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/Amnesic-Systems/veil/internal/nonce"
+	"github.com/Amnesic-Systems/veil/internal/util"
 	"github.com/stretchr/testify/require"
 )
 
@@ -15,9 +16,9 @@ func TestSuccessfulVerification(t *testing.T) {
 	var (
 		a       = NewNoopAttester()
 		origAux = &AuxInfo{
-			PublicKey: [userDataLen]byte{'a', 'b', 'c'},
-			UserData:  [userDataLen]byte{'d', 'e', 'f'},
-			Nonce:     [userDataLen]byte{'g', 'h', 'i'},
+			PublicKey: util.AddrOf([AuxFieldLen]byte{'a', 'b', 'c'}),
+			UserData:  util.AddrOf([AuxFieldLen]byte{'d', 'e', 'f'}),
+			Nonce:     util.AddrOf([AuxFieldLen]byte{'g', 'h', 'i'}),
 		}
 	)
 

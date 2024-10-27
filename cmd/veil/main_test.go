@@ -265,7 +265,7 @@ func TestAttestation(t *testing.T) {
 			require.NoError(t, err, errFromBody(t, resp))
 
 			// Ensure that the recovered nonce matches what we sent.
-			_, n, err := attestation.AuxFromServer(aux)
+			n, err := attestation.GetNonce(aux)
 			require.NoError(t, err)
 			require.Equal(t, c.nonce, n)
 		})
@@ -288,7 +288,7 @@ func TestHashes(t *testing.T) {
 			return testutil.Client.Get(intSrv("/enclave/hashes"))
 		}
 	)
-	hashes.SetAppHash(util.AddrOf([sha256.Size]byte{1}))
+	hashes.SetAppHash(util.AddrOf(sha256.Sum256([]byte("foo"))))
 
 	cases := []struct {
 		name       string
@@ -341,7 +341,7 @@ func TestHashes(t *testing.T) {
 			// Make sure that the application hashes match.
 			require.Equal(t, c.wantHashes.AppKeyHash, gotHashes.AppKeyHash)
 			// Make sure that the TLS certificate hash is set.
-			require.NotEmpty(t, gotHashes.TlsKeyHash)
+			require.NotEmpty(t, *gotHashes.TlsKeyHash)
 		})
 	}
 }
