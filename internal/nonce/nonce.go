@@ -47,7 +47,7 @@ func New() (*Nonce, error) {
 
 // FromSlice turns a byte slice into a nonce.
 func FromSlice(s []byte) (*Nonce, error) {
-	if len(s) != Len {
+	if len(s) < Len {
 		return nil, errs.InvalidLength
 	}
 
