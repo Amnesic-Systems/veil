@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"crypto/tls"
 	"errors"
+	"io/fs"
 	"log"
 	"net"
 	"net/http"
@@ -98,7 +99,12 @@ func setupSystem(config *config.Config) (err error) {
 	if err := system.SeedRandomness(); err != nil {
 		return err
 	}
-	return system.SetupLo()
+	// When running unit tests inside a Nitro Enclave, the loopback interface
+	// may already exist, in which case we ignore the error.
+	if err := system.SetupLo(); err != nil && !errors.Is(err, fs.ErrExist) {
+		return err
+	}
+	return nil
 }
 
 func startAllWebSrvs(
