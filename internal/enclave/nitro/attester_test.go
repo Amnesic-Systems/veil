@@ -1,28 +1,29 @@
-package enclave
+package nitro
 
 import (
 	"testing"
 
+	"github.com/Amnesic-Systems/veil/internal/enclave"
 	"github.com/Amnesic-Systems/veil/internal/nonce"
 	"github.com/Amnesic-Systems/veil/internal/util"
 	"github.com/stretchr/testify/require"
 )
 
-func getNonce(t *testing.T) *[AuxFieldLen]byte {
+func getNonce(t *testing.T) *[enclave.AuxFieldLen]byte {
 	n, err := nonce.New()
 	require.NoError(t, err)
-	return ToAuxField(n.ToSlice())
+	return enclave.ToAuxField(n.ToSlice())
 }
 
 func TestNitroAttest(t *testing.T) {
 	if !IsEnclave() {
 		t.Skip("skipping test; not running in an enclave")
 	}
-	attester := NewNitroAttester()
+	attester := NewAttester()
 
 	cases := []struct {
 		name    string
-		aux     *AuxInfo
+		aux     *enclave.AuxInfo
 		wantErr bool
 	}{
 		{
@@ -31,11 +32,11 @@ func TestNitroAttest(t *testing.T) {
 		},
 		{
 			name: "empty aux info",
-			aux:  &AuxInfo{},
+			aux:  &enclave.AuxInfo{},
 		},
 		{
 			name: "aux info with nonce",
-			aux: &AuxInfo{
+			aux: &enclave.AuxInfo{
 				Nonce: getNonce(t),
 			},
 		},
@@ -48,7 +49,7 @@ func TestNitroAttest(t *testing.T) {
 				require.NotNil(t, err)
 				return
 			}
-			require.Equal(t, doc.Type, typeNitro)
+			require.Equal(t, doc.Type, enclave.TypeNitro)
 		})
 	}
 }
@@ -58,9 +59,9 @@ func TestNitroVerify(t *testing.T) {
 		t.Skip("skipping test; not running in an enclave")
 	}
 
-	attester := NewNitroAttester()
-	getDoc := func(t *testing.T, n *nonce.Nonce) *AttestationDoc {
-		doc, err := attester.Attest(&AuxInfo{Nonce: ToAuxField(n.ToSlice())})
+	attester := NewAttester()
+	getDoc := func(t *testing.T, n *nonce.Nonce) *enclave.AttestationDoc {
+		doc, err := attester.Attest(&enclave.AuxInfo{Nonce: enclave.ToAuxField(n.ToSlice())})
 		require.NoError(t, err)
 		return doc
 	}
@@ -68,7 +69,7 @@ func TestNitroVerify(t *testing.T) {
 
 	cases := []struct {
 		name    string
-		doc     *AttestationDoc
+		doc     *enclave.AttestationDoc
 		nonce   *nonce.Nonce
 		wantErr bool
 	}{
@@ -78,13 +79,13 @@ func TestNitroVerify(t *testing.T) {
 		},
 		{
 			name:    "document type mismatch",
-			doc:     &AttestationDoc{Type: "foo"},
+			doc:     &enclave.AttestationDoc{Type: "foo"},
 			wantErr: true,
 		},
 		{
 			name: "invalid document",
-			doc: &AttestationDoc{
-				Type: typeNitro,
+			doc: &enclave.AttestationDoc{
+				Type: enclave.TypeNitro,
 				Doc:  []byte("foobar"),
 			},
 			wantErr: true,

@@ -20,6 +20,8 @@ import (
 	"time"
 
 	"github.com/Amnesic-Systems/veil/internal/enclave"
+	"github.com/Amnesic-Systems/veil/internal/enclave/nitro"
+	"github.com/Amnesic-Systems/veil/internal/enclave/noop"
 	"github.com/Amnesic-Systems/veil/internal/httperr"
 	"github.com/Amnesic-Systems/veil/internal/nonce"
 	"github.com/Amnesic-Systems/veil/internal/service/attestation"
@@ -31,7 +33,7 @@ import (
 
 func withFlags(flag ...string) []string {
 	var f []string
-	if !enclave.IsEnclave() {
+	if !nitro.IsEnclave() {
 		f = append(f, "-insecure")
 	}
 	return append(f, flag...)
@@ -221,9 +223,9 @@ func TestReadyHandler(t *testing.T) {
 func TestAttestation(t *testing.T) {
 	defer stopSvc(startSvc(t, withFlags()))
 
-	var attester enclave.Attester = enclave.NewNitroAttester()
-	if !enclave.IsEnclave() {
-		attester = enclave.NewNoopAttester()
+	var attester enclave.Attester = nitro.NewAttester()
+	if !nitro.IsEnclave() {
+		attester = noop.NewAttester()
 	}
 
 	cases := []struct {

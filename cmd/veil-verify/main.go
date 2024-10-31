@@ -12,6 +12,8 @@ import (
 	"os/signal"
 
 	"github.com/Amnesic-Systems/veil/internal/enclave"
+	"github.com/Amnesic-Systems/veil/internal/enclave/nitro"
+	"github.com/Amnesic-Systems/veil/internal/enclave/noop"
 	"github.com/Amnesic-Systems/veil/internal/errs"
 	"github.com/Amnesic-Systems/veil/internal/httputil"
 	"github.com/Amnesic-Systems/veil/internal/nonce"
@@ -99,9 +101,9 @@ func attestEnclave(ctx context.Context, cfg *config) (err error) {
 	}
 
 	// Finally, verify the attestation document.
-	var attester enclave.Attester = enclave.NewNitroAttester()
+	var attester enclave.Attester = nitro.NewAttester()
 	if cfg.Testing {
-		attester = enclave.NewNoopAttester()
+		attester = noop.NewAttester()
 	}
 	_, err = attester.Verify(&doc, nonce)
 	return err

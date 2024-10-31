@@ -5,6 +5,8 @@ import (
 	"testing"
 
 	"github.com/Amnesic-Systems/veil/internal/enclave"
+	"github.com/Amnesic-Systems/veil/internal/enclave/nitro"
+	"github.com/Amnesic-Systems/veil/internal/enclave/noop"
 	"github.com/Amnesic-Systems/veil/internal/errs"
 	"github.com/Amnesic-Systems/veil/internal/nonce"
 	"github.com/Amnesic-Systems/veil/internal/util"
@@ -74,9 +76,9 @@ func TestGetters(t *testing.T) {
 }
 
 func TestBuilder(t *testing.T) {
-	attester := enclave.NewNoopAttester()
-	if enclave.IsEnclave() {
-		attester = enclave.NewNitroAttester()
+	attester := noop.NewAttester()
+	if nitro.IsEnclave() {
+		attester = nitro.NewAttester()
 	}
 	nonce1, nonce2 := util.Must(nonce.New()), util.Must(nonce.New())
 	sha1, sha2 := sha256.Sum256([]byte("foo")), sha256.Sum256([]byte("bar"))

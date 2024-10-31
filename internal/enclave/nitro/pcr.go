@@ -1,10 +1,10 @@
-package enclave
+package nitro
 
 import (
 	"bytes"
 
+	"github.com/Amnesic-Systems/veil/internal/enclave"
 	"github.com/Amnesic-Systems/veil/internal/errs"
-	"github.com/hf/nitrite"
 )
 
 // pcr represents the enclave's platform configuration register (PCR) values.
@@ -14,12 +14,12 @@ type pcr map[uint][]byte
 func getPCRs() (_ pcr, err error) {
 	defer errs.Wrap(&err, "failed to get PCRs")
 
-	attestation, err := NewNitroAttester().Attest(&AuxInfo{})
+	attestation, err := NewAttester().Attest(&enclave.AuxInfo{})
 	if err != nil {
 		return nil, err
 	}
 
-	res, err := nitrite.Verify(attestation.Doc, nitrite.VerifyOptions{})
+	res, err := verify(attestation.Doc, verifyOptions{})
 	if err != nil {
 		return nil, err
 	}
