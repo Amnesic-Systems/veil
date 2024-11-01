@@ -13,6 +13,8 @@ import (
 
 	"github.com/Amnesic-Systems/veil/internal/config"
 	"github.com/Amnesic-Systems/veil/internal/enclave"
+	"github.com/Amnesic-Systems/veil/internal/enclave/nitro"
+	"github.com/Amnesic-Systems/veil/internal/enclave/noop"
 	"github.com/Amnesic-Systems/veil/internal/errs"
 	"github.com/Amnesic-Systems/veil/internal/service"
 	"github.com/Amnesic-Systems/veil/internal/tunnel"
@@ -101,10 +103,10 @@ func run(ctx context.Context, out io.Writer, args []string) (err error) {
 	}
 
 	// Initialize dependencies and start the service.
-	var attester enclave.Attester = enclave.NewNitroAttester()
+	var attester enclave.Attester = nitro.NewAttester()
 	var tunneler tunnel.Mechanism = tunnel.NewVSOCK()
 	if cfg.Testing {
-		attester = enclave.NewNoopAttester()
+		attester = noop.NewAttester()
 		tunneler = tunnel.NewNoop()
 	}
 	service.Run(ctx, cfg, attester, tunneler)

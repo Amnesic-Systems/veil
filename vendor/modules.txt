@@ -20,9 +20,6 @@ github.com/go-chi/chi/v5
 github.com/go-chi/chi/v5/middleware
 # github.com/google/go-cmp v0.6.0
 ## explicit; go 1.13
-# github.com/hf/nitrite v0.0.0-20211104000856-f9e0dcc73703
-## explicit; go 1.15
-github.com/hf/nitrite
 # github.com/hf/nsm v0.0.0-20220930140112-cd181bd646b9
 ## explicit; go 1.15
 github.com/hf/nsm

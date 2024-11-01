@@ -1,8 +1,6 @@
 package enclave
 
 import (
-	"errors"
-
 	"github.com/Amnesic-Systems/veil/internal/nonce"
 )
 
@@ -10,16 +8,8 @@ const (
 	// See page 65 of the AWS Nitro Enclaves user guide for reference:
 	// https://docs.aws.amazon.com/pdfs/enclaves/latest/user/enclaves-user.pdf
 	AuxFieldLen = 1024
-	typeNoop    = "noop"
-	typeNitro   = "nitro"
-)
-
-var (
-	errNonceMismatch = errors.New("nonce does not match")
-
-	// Check at compile-time if types implement the attester interface.
-	_ Attester = (*NitroAttester)(nil)
-	_ Attester = (*NoopAttester)(nil)
+	TypeNoop    = "noop"
+	TypeNitro   = "nitro"
 )
 
 // AttestationDoc holds the enclave's attestation document.

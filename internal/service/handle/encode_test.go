@@ -9,7 +9,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/Amnesic-Systems/veil/internal/enclave"
+	"github.com/Amnesic-Systems/veil/internal/enclave/noop"
 	"github.com/Amnesic-Systems/veil/internal/httperr"
 	"github.com/Amnesic-Systems/veil/internal/service/attestation"
 )
@@ -40,7 +40,7 @@ func TestEncodeAndAttest(t *testing.T) {
 			name:       "valid encoding",
 			nonce:      "hJkjpaP/6cVT+vikk06HcN0aOdU=",
 			status:     http.StatusOK,
-			builder:    attestation.NewBuilder(enclave.NewNoopAttester()),
+			builder:    attestation.NewBuilder(noop.NewAttester()),
 			body:       httperr.New("random error"),
 			wantBody:   `{"error":"random error"}`,
 			wantStatus: http.StatusOK,

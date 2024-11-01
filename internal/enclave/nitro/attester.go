@@ -1,35 +1,37 @@
-package enclave
+package nitro
 
 import (
 	"errors"
 	"time"
 
+	"github.com/Amnesic-Systems/veil/internal/enclave"
 	"github.com/Amnesic-Systems/veil/internal/errs"
 	"github.com/Amnesic-Systems/veil/internal/nonce"
 
-	"github.com/hf/nitrite"
 	"github.com/hf/nsm"
 	"github.com/hf/nsm/request"
 )
 
-// NitroAttester implements the attester interface by drawing on the AWS Nitro
+var _ enclave.Attester = (*Attester)(nil)
+
+// Attester implements the attester interface by drawing on the AWS Nitro
 // Enclave hypervisor.
-type NitroAttester struct {
+type Attester struct {
 	session *nsm.Session
 }
 
-// NewNitroAttester returns a new nitroAttester.
-func NewNitroAttester() Attester {
-	return new(NitroAttester)
+// NewAttester returns a new nitroAttester.
+func NewAttester() enclave.Attester {
+	return new(Attester)
 }
 
-func (*NitroAttester) Type() string {
-	return typeNitro
+func (*Attester) Type() string {
+	return enclave.TypeNitro
 }
 
 // convertTo converts our representation of an auxiliary field to the nsm
 // package's representation.
-func convertTo(auxField *[AuxFieldLen]byte) []byte {
+func convertTo(auxField *[enclave.AuxFieldLen]byte) []byte {
 	if auxField == nil {
 		return nil
 	}
@@ -38,16 +40,16 @@ func convertTo(auxField *[AuxFieldLen]byte) []byte {
 
 // convertFrom converts the nsm package's representation of an auxiliary field
 // to our representation.
-func convertFrom(auxField []byte) *[AuxFieldLen]byte {
+func convertFrom(auxField []byte) *[enclave.AuxFieldLen]byte {
 	if auxField == nil {
 		return nil
 	}
-	var res [AuxFieldLen]byte
+	var res [enclave.AuxFieldLen]byte
 	copy(res[:], auxField)
 	return &res
 }
 
-func (a *NitroAttester) Attest(aux *AuxInfo) (_ *AttestationDoc, err error) {
+func (a *Attester) Attest(aux *enclave.AuxInfo) (_ *enclave.AttestationDoc, err error) {
 	defer errs.Wrap(&err, "failed to create attestation document")
 
 	if a.session == nil {
@@ -74,13 +76,16 @@ func (a *NitroAttester) Attest(aux *AuxInfo) (_ *AttestationDoc, err error) {
 		return nil, errors.New("required fields missing in attestation response")
 	}
 
-	return &AttestationDoc{
-		Type: typeNitro,
+	return &enclave.AttestationDoc{
+		Type: enclave.TypeNitro,
 		Doc:  resp.Attestation.Document,
 	}, nil
 }
 
-func (a *NitroAttester) Verify(doc *AttestationDoc, ourNonce *nonce.Nonce) (_ *AuxInfo, err error) {
+func (a *Attester) Verify(
+	doc *enclave.AttestationDoc,
+	ourNonce *nonce.Nonce,
+) (_ *enclave.AuxInfo, err error) {
 	defer errs.Wrap(&err, "failed to verify attestation document")
 
 	if doc == nil {
@@ -91,23 +96,27 @@ func (a *NitroAttester) Verify(doc *AttestationDoc, ourNonce *nonce.Nonce) (_ *A
 	}
 
 	// First, verify the attestation document.
-	opts := nitrite.VerifyOptions{CurrentTime: time.Now().UTC()}
-	res, err := nitrite.Verify(doc.Doc, opts)
+	opts := verifyOptions{CurrentTime: time.Now().UTC()}
+	res, err := verify(doc.Doc, opts)
 	if err != nil {
 		return nil, err
 	}
+
+	// TODO: return an error if the attestation mode was produced in debug mode.
 
 	// Verify that the attestation document contains the nonce that we may have
 	// asked it to embed.
-	docNonce, err := nonce.FromSlice(res.Document.Nonce)
-	if err != nil {
-		return nil, err
-	}
-	if ourNonce != nil && *ourNonce != *docNonce {
-		return nil, errNonceMismatch
+	if ourNonce != nil {
+		docNonce, err := nonce.FromSlice(res.Document.Nonce)
+		if err != nil {
+			return nil, err
+		}
+		if *ourNonce != *docNonce {
+			return nil, errors.New("nonce does not match")
+		}
 	}
 
-	return &AuxInfo{
+	return &enclave.AuxInfo{
 		Nonce:     convertFrom(res.Document.Nonce),
 		UserData:  convertFrom(res.Document.UserData),
 		PublicKey: convertFrom(res.Document.PublicKey),
