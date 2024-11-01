@@ -27,6 +27,44 @@ func TestGetPCRs(t *testing.T) {
 	require.Equal(t, pcrs1, pcrs2)
 }
 
+func TestPCRsFromDebugMode(t *testing.T) {
+	cases := []struct {
+		name string
+		pcrs pcr
+		want bool
+	}{
+		{
+			name: "empty",
+			pcrs: pcr{},
+		},
+		{
+			name: "debug mode",
+			pcrs: pcr{
+				0: emptyPCR,
+				1: emptyPCR,
+				2: emptyPCR,
+				3: []byte("foo"), // Should be ignored.
+				4: []byte("bar"), // Should be ignored.
+			},
+			want: true,
+		},
+		{
+			name: "not debug mode",
+			pcrs: pcr{
+				0: []byte("foo"),
+				1: emptyPCR,
+				2: emptyPCR,
+			},
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			require.Equal(t, c.want, c.pcrs.FromDebugMode())
+		})
+	}
+}
+
 func TestPCRsEqual(t *testing.T) {
 	cases := []struct {
 		name string

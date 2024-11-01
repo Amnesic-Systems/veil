@@ -13,6 +13,7 @@ import (
 )
 
 var _ enclave.Attester = (*Attester)(nil)
+var ErrDebugMode = errors.New("attestation document was produced in debug mode")
 
 // Attester implements the attester interface by drawing on the AWS Nitro
 // Enclave hypervisor.
@@ -102,8 +103,6 @@ func (a *Attester) Verify(
 		return nil, err
 	}
 
-	// TODO: return an error if the attestation mode was produced in debug mode.
-
 	// Verify that the attestation document contains the nonce that we may have
 	// asked it to embed.
 	if ourNonce != nil {
@@ -116,9 +115,15 @@ func (a *Attester) Verify(
 		}
 	}
 
+	// If the enclave is running in debug mode, return an error *and* the
+	// auxiliary information.
+	if res.Document.PCRs.FromDebugMode() {
+		err = ErrDebugMode
+	}
+
 	return &enclave.AuxInfo{
 		Nonce:     convertFrom(res.Document.Nonce),
 		UserData:  convertFrom(res.Document.UserData),
 		PublicKey: convertFrom(res.Document.PublicKey),
-	}, nil
+	}, err
 }
