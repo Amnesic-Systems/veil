@@ -7,13 +7,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestAddrOf(t *testing.T) {
-	t.Parallel()
-
-	x := 1
-	require.Equal(t, &x, AddrOf(x))
-}
-
 func TestMust(t *testing.T) {
 	t.Parallel()
 

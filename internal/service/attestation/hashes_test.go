@@ -4,8 +4,8 @@ import (
 	"crypto/sha256"
 	"testing"
 
+	"github.com/Amnesic-Systems/veil/internal/addr"
 	"github.com/Amnesic-Systems/veil/internal/errs"
-	"github.com/Amnesic-Systems/veil/internal/util"
 	"github.com/stretchr/testify/require"
 )
 
@@ -13,8 +13,8 @@ func TestDeSerialization(t *testing.T) {
 	var (
 		origHashes = new(Hashes)
 	)
-	origHashes.SetAppHash(util.AddrOf(sha256.Sum256([]byte("foo"))))
-	origHashes.SetTLSHash(util.AddrOf(sha256.Sum256([]byte("bar"))))
+	origHashes.SetAppHash(addr.Of(sha256.Sum256([]byte("foo"))))
+	origHashes.SetTLSHash(addr.Of(sha256.Sum256([]byte("bar"))))
 
 	hashes, err := DeserializeHashes(origHashes.Serialize())
 	require.NoError(t, err)

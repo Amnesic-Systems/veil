@@ -7,8 +7,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/Amnesic-Systems/veil/internal/addr"
 	"github.com/Amnesic-Systems/veil/internal/errs"
-	"github.com/Amnesic-Systems/veil/internal/util"
 )
 
 // Hashes contains hashes over public key material which we embed in
@@ -61,7 +61,7 @@ func DeserializeHashes(b []byte) (h *Hashes, err error) {
 	tlsKeyHash := []byte(strings.TrimPrefix(s[0], "sha256:"))
 	appKeyHash := []byte(strings.TrimPrefix(s[1], "sha256:"))
 	h = &Hashes{
-		TlsKeyHash: util.AddrOf([sha256.Size]byte{}),
+		TlsKeyHash: addr.Of([sha256.Size]byte{}),
 	}
 
 	if _, err := base64.StdEncoding.Decode(
@@ -76,7 +76,7 @@ func DeserializeHashes(b []byte) (h *Hashes, err error) {
 		return h, nil
 	}
 
-	h.AppKeyHash = util.AddrOf([sha256.Size]byte{})
+	h.AppKeyHash = addr.Of([sha256.Size]byte{})
 	if _, err := base64.StdEncoding.Decode(
 		h.AppKeyHash[:],
 		appKeyHash,

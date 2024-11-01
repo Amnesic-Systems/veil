@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"sync"
 
+	"github.com/Amnesic-Systems/veil/internal/addr"
 	"github.com/Amnesic-Systems/veil/internal/config"
 	"github.com/Amnesic-Systems/veil/internal/httperr"
 	"github.com/Amnesic-Systems/veil/internal/httputil"
@@ -98,8 +99,8 @@ func AppHash(
 	setAppHash func(*[sha256.Size]byte),
 ) http.HandlerFunc {
 	b := util.Must(json.Marshal(&attestation.Hashes{
-		TlsKeyHash: util.AddrOf(sha256.Sum256([]byte("foo"))),
-		AppKeyHash: util.AddrOf(sha256.Sum256([]byte("bar"))),
+		TlsKeyHash: addr.Of(sha256.Sum256([]byte("foo"))),
+		AppKeyHash: addr.Of(sha256.Sum256([]byte("bar"))),
 	}))
 	maxHashesLen := len(b) + 1 // Allow extra byte for the \n.
 
