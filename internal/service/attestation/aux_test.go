@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"testing"
 
+	"github.com/Amnesic-Systems/veil/internal/addr"
 	"github.com/Amnesic-Systems/veil/internal/enclave"
 	"github.com/Amnesic-Systems/veil/internal/enclave/nitro"
 	"github.com/Amnesic-Systems/veil/internal/enclave/noop"
@@ -15,11 +16,11 @@ import (
 
 func TestGetters(t *testing.T) {
 	n := util.Must(nonce.New())
-	s := util.AddrOf(sha256.Sum256([]byte("foo")))
-	h1 := &Hashes{TlsKeyHash: util.AddrOf(sha256.Sum256([]byte("foo")))}
+	s := addr.Of(sha256.Sum256([]byte("foo")))
+	h1 := &Hashes{TlsKeyHash: addr.Of(sha256.Sum256([]byte("foo")))}
 	h2 := &Hashes{
-		TlsKeyHash: util.AddrOf(sha256.Sum256([]byte("foo"))),
-		AppKeyHash: util.AddrOf(sha256.Sum256([]byte("bar"))),
+		TlsKeyHash: addr.Of(sha256.Sum256([]byte("foo"))),
+		AppKeyHash: addr.Of(sha256.Sum256([]byte("bar"))),
 	}
 
 	cases := []struct {
@@ -82,8 +83,8 @@ func TestBuilder(t *testing.T) {
 	}
 	nonce1, nonce2 := util.Must(nonce.New()), util.Must(nonce.New())
 	sha1, sha2 := sha256.Sum256([]byte("foo")), sha256.Sum256([]byte("bar"))
-	hashes1 := &Hashes{TlsKeyHash: util.AddrOf(sha256.Sum256([]byte("foo")))}
-	hashes2 := &Hashes{TlsKeyHash: util.AddrOf(sha256.Sum256([]byte("bar")))}
+	hashes1 := &Hashes{TlsKeyHash: addr.Of(sha256.Sum256([]byte("foo")))}
+	hashes2 := &Hashes{TlsKeyHash: addr.Of(sha256.Sum256([]byte("bar")))}
 
 	cases := []struct {
 		name         string

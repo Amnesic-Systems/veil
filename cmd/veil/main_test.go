@@ -19,6 +19,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Amnesic-Systems/veil/internal/addr"
 	"github.com/Amnesic-Systems/veil/internal/enclave"
 	"github.com/Amnesic-Systems/veil/internal/enclave/nitro"
 	"github.com/Amnesic-Systems/veil/internal/enclave/noop"
@@ -295,7 +296,7 @@ func TestHashes(t *testing.T) {
 			return testutil.Client.Get(intSrv("/enclave/hashes"))
 		}
 	)
-	hashes.SetAppHash(util.AddrOf(sha256.Sum256([]byte("foo"))))
+	hashes.SetAppHash(addr.Of(sha256.Sum256([]byte("foo"))))
 
 	cases := []struct {
 		name       string

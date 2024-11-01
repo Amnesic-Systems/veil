@@ -10,6 +10,7 @@ import (
 	"net"
 	"net/http"
 
+	"github.com/Amnesic-Systems/veil/internal/addr"
 	"github.com/Amnesic-Systems/veil/internal/config"
 	"github.com/Amnesic-Systems/veil/internal/enclave"
 	"github.com/Amnesic-Systems/veil/internal/errs"
@@ -47,7 +48,7 @@ func Run(
 
 	// Initialize hashes for the attestation document.
 	hashes := new(attestation.Hashes)
-	hashes.SetTLSHash(util.AddrOf(sha256.Sum256(cert)))
+	hashes.SetTLSHash(addr.Of(sha256.Sum256(cert)))
 
 	// Initialize Web servers.
 	intSrv := newIntSrv(config, keys, hashes, appReady)

@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"crypto/sha256"
 
+	"github.com/Amnesic-Systems/veil/internal/addr"
 	"github.com/Amnesic-Systems/veil/internal/enclave"
 	"github.com/Amnesic-Systems/veil/internal/errs"
 	"github.com/Amnesic-Systems/veil/internal/nonce"
-	"github.com/Amnesic-Systems/veil/internal/util"
 )
 
 // Builder is a helper for setting auxiliary attestation both at initialization
@@ -42,7 +42,7 @@ func (b *Builder) Attest(opts ...AuxField) (*enclave.AttestationDoc, error) {
 func WithHashes(h *Hashes) AuxField {
 	return func(b *Builder) {
 		if b.aux.PublicKey == nil {
-			b.aux.PublicKey = util.AddrOf([enclave.AuxFieldLen]byte{})
+			b.aux.PublicKey = addr.Of([enclave.AuxFieldLen]byte{})
 		}
 		copy(b.aux.PublicKey[:], h.Serialize())
 	}
@@ -52,7 +52,7 @@ func WithHashes(h *Hashes) AuxField {
 func WithNonce(n *nonce.Nonce) AuxField {
 	return func(b *Builder) {
 		if b.aux.Nonce == nil {
-			b.aux.Nonce = util.AddrOf([enclave.AuxFieldLen]byte{})
+			b.aux.Nonce = addr.Of([enclave.AuxFieldLen]byte{})
 		}
 		copy(b.aux.Nonce[:], n[:])
 	}
@@ -62,7 +62,7 @@ func WithNonce(n *nonce.Nonce) AuxField {
 func WithSHA256(sha [sha256.Size]byte) AuxField {
 	return func(b *Builder) {
 		if b.aux.UserData == nil {
-			b.aux.UserData = util.AddrOf([enclave.AuxFieldLen]byte{})
+			b.aux.UserData = addr.Of([enclave.AuxFieldLen]byte{})
 		}
 		copy(b.aux.UserData[:], sha[:])
 	}
