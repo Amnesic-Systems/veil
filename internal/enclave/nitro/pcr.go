@@ -42,17 +42,18 @@ func (p pcr) FromDebugMode() bool {
 
 // Equal returns true if (and only if) the two given PCR maps are identical.
 func (ours pcr) Equal(theirs pcr) bool {
-	// PCR4 contains a hash over the parent's instance ID.  Our enclaves run
-	// on different parent instances, so PCR4 will therefore always differ:
-	// https://docs.aws.amazon.com/enclaves/latest/user/set-up-attestation.html
-	delete(ours, 4)
-	delete(theirs, 4)
-
 	if len(ours) != len(theirs) {
 		return false
 	}
 
 	for i, ourValue := range ours {
+		// PCR4 contains a hash over the parent's instance ID.  If horizontal
+		// scaling is enabled, enclaves run on different parent instances, so
+		// PCR4 will differ:
+		// https://docs.aws.amazon.com/enclaves/latest/user/set-up-attestation.html
+		if i == 4 {
+			continue
+		}
 		theirValue, exists := theirs[i]
 		if !exists {
 			return false
