@@ -130,8 +130,12 @@ func TestBuilder(t *testing.T) {
 			doc, err := b.Attest(c.attestFields...)
 			require.NoError(t, err)
 
+			// Verify the attestation document.  We expect no error but if the
+			// test is run inside a Nitro Enclave, we will get ErrDebugMode.
 			aux, err := attester.Verify(doc, nil)
-			require.NoError(t, err)
+			if err != nil {
+				require.ErrorIs(t, err, nitro.ErrDebugMode)
+			}
 			require.Equal(t, c.wantAux, aux)
 		})
 	}
