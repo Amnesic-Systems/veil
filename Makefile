@@ -2,6 +2,10 @@ prog = veil
 prog_dir = cmd/veil
 godeps = go.mod go.sum $(shell find cmd internal -name "*.go" -type f)
 
+image_tag := $(prog)
+image_tar := $(prog).tar
+image_eif := $(prog).eif
+
 cover_out = cover.out
 cover_html = cover.html
 
@@ -16,6 +20,37 @@ lint: $(godeps)
 .PHONY: test
 test: $(godeps)
 	go test -race -cover ./...
+
+$(image_tar): $(godeps) docker/Dockerfile-unit-test
+	@echo "Building $(image_tar)..."
+	@docker run --volume $(PWD):/workspace \
+		gcr.io/kaniko-project/executor:v1.9.2 \
+		--dockerfile docker/Dockerfile-unit-test \
+		--reproducible \
+		--no-push \
+		--verbosity warn \
+		--tarPath $(image_tar) \
+		--destination $(image_tag) \
+		--custom-platform linux/amd64
+
+$(image_eif): $(image_tar)
+	@echo "Building $(image_eif)..."
+	@docker load --quiet --input $<
+	@nitro-cli build-enclave \
+		--docker-uri $(image_tag) \
+		--output-file $(image_eif)
+
+.PHONY: enclave-test
+enclave-test: $(godeps) $(image_eif)
+	@echo "Running enclave tests..."
+	@nitro-cli terminate-enclave \
+		--all
+	@nitro-cli run-enclave \
+		--enclave-name veil-unit-tests \
+		--eif-path $(image_eif) \
+		--attach-console \
+		--cpu-count 2 \
+		--memory 3500
 
 .PHONY: coverage
 coverage: $(cover_html)
@@ -39,5 +74,5 @@ $(prog): $(godeps)
 .PHONY: clean
 clean:
 	rm -f $(prog_dir)/$(prog)
-	rm -f $(cover_out)
-	rm -f $(cover_html)
+	rm -f $(cover_out) $(cover_html)
+	rm -f $(image_tar) $(image_eif)
