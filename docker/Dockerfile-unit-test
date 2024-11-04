@@ -1,0 +1,14 @@
+FROM golang:1.23
+
+WORKDIR /app
+
+RUN mkdir cmd/ internal/ vendor/
+COPY cmd/ ./cmd/
+COPY internal/ ./internal/
+COPY vendor/ ./vendor/
+COPY Makefile go.mod go.sum ./
+COPY scripts/run-unit-tests.sh ./
+
+RUN go mod download
+
+CMD ["/app/run-unit-tests.sh"]
