@@ -20,7 +20,7 @@ func (*Attester) Type() string {
 	return enclave.TypeNoop
 }
 
-func (*Attester) Attest(aux *enclave.AuxInfo) (*enclave.AttestationDoc, error) {
+func (*Attester) Attest(aux *enclave.AuxInfo) (*enclave.RawDocument, error) {
 	// With the Nitro attester, the attestation document is a CBOR-encoded byte
 	// array.  For simplicity, the Noop attester encodes the given AuxInfo as a
 	// JSON object in the attestation document.
@@ -28,16 +28,19 @@ func (*Attester) Attest(aux *enclave.AuxInfo) (*enclave.AttestationDoc, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &enclave.AttestationDoc{
+	return &enclave.RawDocument{
 		Type: enclave.TypeNoop,
 		Doc:  a,
 	}, nil
 }
 
-func (*Attester) Verify(a *enclave.AttestationDoc, n *nonce.Nonce) (*enclave.AuxInfo, error) {
+func (*Attester) Verify(a *enclave.RawDocument, n *nonce.Nonce) (*enclave.Document, error) {
+	var doc = new(enclave.Document)
 	var aux = new(enclave.AuxInfo)
+
 	if err := json.Unmarshal(a.Doc, aux); err != nil {
 		return nil, err
 	}
-	return aux, nil
+	doc.AuxInfo = *aux
+	return doc, nil
 }

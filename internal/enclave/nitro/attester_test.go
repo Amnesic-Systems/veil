@@ -9,12 +9,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func getNonce(t *testing.T) *[enclave.AuxFieldLen]byte {
-	n, err := nonce.New()
-	require.NoError(t, err)
-	return enclave.ToAuxField(n.ToSlice())
-}
-
 func TestNitroAttest(t *testing.T) {
 	if !IsEnclave() {
 		t.Skip("skipping test; not running in an enclave")
@@ -37,7 +31,7 @@ func TestNitroAttest(t *testing.T) {
 		{
 			name: "aux info with nonce",
 			aux: &enclave.AuxInfo{
-				Nonce: getNonce(t),
+				Nonce: util.Must(nonce.New()).ToSlice(),
 			},
 		},
 	}
@@ -60,8 +54,8 @@ func TestNitroVerify(t *testing.T) {
 	}
 
 	attester := NewAttester()
-	getDoc := func(t *testing.T, n *nonce.Nonce) *enclave.AttestationDoc {
-		doc, err := attester.Attest(&enclave.AuxInfo{Nonce: enclave.ToAuxField(n.ToSlice())})
+	getDoc := func(t *testing.T, n *nonce.Nonce) *enclave.RawDocument {
+		doc, err := attester.Attest(&enclave.AuxInfo{Nonce: n.ToSlice()})
 		require.NoError(t, err)
 		return doc
 	}
@@ -69,7 +63,7 @@ func TestNitroVerify(t *testing.T) {
 
 	cases := []struct {
 		name    string
-		doc     *enclave.AttestationDoc
+		doc     *enclave.RawDocument
 		nonce   *nonce.Nonce
 		wantErr bool
 	}{
@@ -79,12 +73,12 @@ func TestNitroVerify(t *testing.T) {
 		},
 		{
 			name:    "document type mismatch",
-			doc:     &enclave.AttestationDoc{Type: "foo"},
+			doc:     &enclave.RawDocument{Type: "foo"},
 			wantErr: true,
 		},
 		{
 			name: "invalid document",
-			doc: &enclave.AttestationDoc{
+			doc: &enclave.RawDocument{
 				Type: enclave.TypeNitro,
 				Doc:  []byte("foobar"),
 			},

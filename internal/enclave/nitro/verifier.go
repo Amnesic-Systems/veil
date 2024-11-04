@@ -33,6 +33,7 @@ import (
 	"crypto/sha256"
 	"crypto/sha512"
 	"crypto/x509"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -44,26 +45,10 @@ import (
 	"github.com/fxamacker/cbor/v2"
 )
 
-// Document represents the AWS Nitro Enclave attestation document as specified
-// on page 70 of:
-// https://docs.aws.amazon.com/pdfs/enclaves/latest/user/enclaves-user.pdf
-type Document struct {
-	ModuleID    string   `cbor:"module_id" json:"module_id"`
-	Timestamp   uint64   `cbor:"timestamp" json:"timestamp"`
-	Digest      string   `cbor:"digest" json:"digest"`
-	PCRs        pcr      `cbor:"pcrs" json:"pcrs"`
-	Certificate []byte   `cbor:"certificate" json:"certificate"`
-	CABundle    [][]byte `cbor:"cabundle" json:"cabundle"`
-
-	PublicKey []byte `cbor:"public_key" json:"public_key,omitempty"`
-	UserData  []byte `cbor:"user_data" json:"user_data,omitempty"`
-	Nonce     []byte `cbor:"nonce" json:"nonce,omitempty"`
-}
-
 // Result is a successful verification result of an attestation payload.
 type Result struct {
 	// Document contains the attestation document.
-	Document *Document `json:"document,omitempty"`
+	Document *enclave.Document `json:"document,omitempty"`
 
 	// Certificates contains all of the certificates except the root.
 	Certificates []*x509.Certificate `json:"certificates,omitempty"`
@@ -225,7 +210,7 @@ func verify(data []byte, options verifyOptions) (_ *Result, err error) {
 	}
 
 	// Decode the attestation document.
-	doc := Document{}
+	doc := enclave.Document{}
 	err = cbor.Unmarshal(cose.Payload, &doc)
 	if nil != err {
 		return nil, err
@@ -344,6 +329,12 @@ func verify(data []byte, options verifyOptions) (_ *Result, err error) {
 	if !sigOK {
 		return nil, errors.New("payload's signature does not match signature from certificate")
 	}
+
+	b, err := json.Marshal(doc.PCRs)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println(string(b))
 
 	return &Result{
 		Document:     &doc,

@@ -39,9 +39,9 @@ func TestGetters(t *testing.T) {
 		{
 			name: "all fields, some hashes",
 			aux: &enclave.AuxInfo{
-				Nonce:     enclave.ToAuxField(n.ToSlice()),
-				UserData:  enclave.ToAuxField(s[:]),
-				PublicKey: enclave.ToAuxField(h1.Serialize()),
+				Nonce:     n.ToSlice(),
+				UserData:  s[:],
+				PublicKey: h1.Serialize(),
 			},
 			wantNonce:  n,
 			wantSHA:    s,
@@ -50,9 +50,9 @@ func TestGetters(t *testing.T) {
 		{
 			name: "all fields, all hashes",
 			aux: &enclave.AuxInfo{
-				Nonce:     enclave.ToAuxField(n.ToSlice()),
-				UserData:  enclave.ToAuxField(s[:]),
-				PublicKey: enclave.ToAuxField(h2.Serialize()),
+				Nonce:     n.ToSlice(),
+				UserData:  s[:],
+				PublicKey: h2.Serialize(),
 			},
 			wantNonce:  n,
 			wantSHA:    s,
@@ -99,27 +99,27 @@ func TestBuilder(t *testing.T) {
 		{
 			name:       "nonce at initialization",
 			initFields: []AuxField{WithNonce(nonce1)},
-			wantAux:    &enclave.AuxInfo{Nonce: enclave.ToAuxField(nonce1.ToSlice())},
+			wantAux:    &enclave.AuxInfo{Nonce: nonce1.ToSlice()},
 		},
 		{
 			name:         "nonce at attestation",
 			attestFields: []AuxField{WithNonce(nonce1)},
-			wantAux:      &enclave.AuxInfo{Nonce: enclave.ToAuxField(nonce1.ToSlice())},
+			wantAux:      &enclave.AuxInfo{Nonce: nonce1.ToSlice()},
 		},
 		{
 			name:         "nonce being overwritten",
 			initFields:   []AuxField{WithNonce(nonce1)},
 			attestFields: []AuxField{WithNonce(nonce2)},
-			wantAux:      &enclave.AuxInfo{Nonce: enclave.ToAuxField(nonce2.ToSlice())},
+			wantAux:      &enclave.AuxInfo{Nonce: nonce2.ToSlice()},
 		},
 		{
 			name:         "everything overwritten",
 			initFields:   []AuxField{WithHashes(hashes1), WithNonce(nonce1), WithSHA256(sha1)},
 			attestFields: []AuxField{WithHashes(hashes2), WithNonce(nonce2), WithSHA256(sha2)},
 			wantAux: &enclave.AuxInfo{
-				Nonce:     enclave.ToAuxField(nonce2.ToSlice()),
-				PublicKey: enclave.ToAuxField(hashes2.Serialize()),
-				UserData:  enclave.ToAuxField(sha2[:]),
+				Nonce:     nonce2.ToSlice(),
+				PublicKey: hashes2.Serialize(),
+				UserData:  sha2[:],
 			},
 		},
 	}
@@ -127,16 +127,16 @@ func TestBuilder(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			b := NewBuilder(attester, c.initFields...)
-			doc, err := b.Attest(c.attestFields...)
+			rawDoc, err := b.Attest(c.attestFields...)
 			require.NoError(t, err)
 
 			// Verify the attestation document.  We expect no error but if the
 			// test is run inside a Nitro Enclave, we will get ErrDebugMode.
-			aux, err := attester.Verify(doc, nil)
+			doc, err := attester.Verify(rawDoc, nil)
 			if err != nil {
 				require.ErrorIs(t, err, nitro.ErrDebugMode)
 			}
-			require.Equal(t, c.wantAux, aux)
+			require.Equal(t, c.wantAux, &doc.AuxInfo)
 		})
 	}
 }

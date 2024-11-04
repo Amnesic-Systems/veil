@@ -1,4 +1,4 @@
-package nitro
+package enclave
 
 import (
 	"testing"
@@ -6,26 +6,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-func TestGetPCRs(t *testing.T) {
-	if !IsEnclave() {
-		t.Skip("skipping test; not running in an enclave")
-	}
-
-	pcrs1, err := getPCRs()
-	require.NoError(t, err)
-
-	// PCRs for the enclave image file, the Linux kernel, and the application
-	// must always be set.
-	require.NotEmpty(t, pcrs1[0])
-	require.NotEmpty(t, pcrs1[1])
-	require.NotEmpty(t, pcrs1[2])
-
-	pcrs2, err := getPCRs()
-	require.NoError(t, err)
-	// PCRs should be the same across calls.
-	require.Equal(t, pcrs1, pcrs2)
-}
 
 func TestPCRsFromDebugMode(t *testing.T) {
 	cases := []struct {

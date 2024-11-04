@@ -95,7 +95,7 @@ func attestEnclave(ctx context.Context, cfg *config) (err error) {
 		return err
 	}
 	defer resp.Body.Close()
-	var doc enclave.AttestationDoc
+	var doc enclave.RawDocument
 	if err := json.Unmarshal(body, &doc); err != nil {
 		return err
 	}
