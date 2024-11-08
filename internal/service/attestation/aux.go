@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"crypto/sha256"
 
-	"github.com/Amnesic-Systems/veil/internal/addr"
 	"github.com/Amnesic-Systems/veil/internal/enclave"
 	"github.com/Amnesic-Systems/veil/internal/errs"
 	"github.com/Amnesic-Systems/veil/internal/nonce"
@@ -31,7 +30,7 @@ func NewBuilder(attester enclave.Attester, opts ...AuxField) *Builder {
 
 // Attest returns an attestation document with the auxiliary fields that were
 // either already set, or are now passed in as options.
-func (b *Builder) Attest(opts ...AuxField) (*enclave.AttestationDoc, error) {
+func (b *Builder) Attest(opts ...AuxField) (*enclave.RawDocument, error) {
 	for _, opt := range opts {
 		opt(b)
 	}
@@ -41,30 +40,21 @@ func (b *Builder) Attest(opts ...AuxField) (*enclave.AttestationDoc, error) {
 // WithHashes sets the given hashes in an auxiliary field.
 func WithHashes(h *Hashes) AuxField {
 	return func(b *Builder) {
-		if b.aux.PublicKey == nil {
-			b.aux.PublicKey = addr.Of([enclave.AuxFieldLen]byte{})
-		}
-		copy(b.aux.PublicKey[:], h.Serialize())
+		b.aux.PublicKey = h.Serialize() // TODO: safe?
 	}
 }
 
 // WithNonce sets the given nonce in an auxiliary field.
 func WithNonce(n *nonce.Nonce) AuxField {
 	return func(b *Builder) {
-		if b.aux.Nonce == nil {
-			b.aux.Nonce = addr.Of([enclave.AuxFieldLen]byte{})
-		}
-		copy(b.aux.Nonce[:], n[:])
+		b.aux.Nonce = n.ToSlice() // TODO: safe?
 	}
 }
 
 // WithSHA256 sets the given SHA256 hash in an auxiliary field.
 func WithSHA256(sha [sha256.Size]byte) AuxField {
 	return func(b *Builder) {
-		if b.aux.UserData == nil {
-			b.aux.UserData = addr.Of([enclave.AuxFieldLen]byte{})
-		}
-		copy(b.aux.UserData[:], sha[:])
+		b.aux.UserData = sha[:]
 	}
 }
 

@@ -30,27 +30,7 @@ func (*Attester) Type() string {
 	return enclave.TypeNitro
 }
 
-// convertTo converts our representation of an auxiliary field to the nsm
-// package's representation.
-func convertTo(auxField *[enclave.AuxFieldLen]byte) []byte {
-	if auxField == nil {
-		return nil
-	}
-	return auxField[:]
-}
-
-// convertFrom converts the nsm package's representation of an auxiliary field
-// to our representation.
-func convertFrom(auxField []byte) *[enclave.AuxFieldLen]byte {
-	if auxField == nil {
-		return nil
-	}
-	var res [enclave.AuxFieldLen]byte
-	copy(res[:], auxField)
-	return &res
-}
-
-func (a *Attester) Attest(aux *enclave.AuxInfo) (_ *enclave.AttestationDoc, err error) {
+func (a *Attester) Attest(aux *enclave.AuxInfo) (_ *enclave.RawDocument, err error) {
 	defer errs.Wrap(&err, "failed to create attestation document")
 
 	if a.session == nil {
@@ -65,9 +45,9 @@ func (a *Attester) Attest(aux *enclave.AuxInfo) (_ *enclave.AttestationDoc, err 
 	}
 
 	req := &request.Attestation{
-		Nonce:     convertTo(aux.Nonce),
-		UserData:  convertTo(aux.UserData),
-		PublicKey: convertTo(aux.PublicKey),
+		Nonce:     aux.Nonce,
+		UserData:  aux.UserData,
+		PublicKey: aux.PublicKey,
 	}
 	resp, err := a.session.Send(req)
 	if err != nil {
@@ -77,16 +57,16 @@ func (a *Attester) Attest(aux *enclave.AuxInfo) (_ *enclave.AttestationDoc, err 
 		return nil, errors.New("required fields missing in attestation response")
 	}
 
-	return &enclave.AttestationDoc{
+	return &enclave.RawDocument{
 		Type: enclave.TypeNitro,
 		Doc:  resp.Attestation.Document,
 	}, nil
 }
 
 func (a *Attester) Verify(
-	doc *enclave.AttestationDoc,
+	doc *enclave.RawDocument,
 	ourNonce *nonce.Nonce,
-) (_ *enclave.AuxInfo, err error) {
+) (_ *enclave.Document, err error) {
 	defer errs.Wrap(&err, "failed to verify attestation document")
 
 	if doc == nil {
@@ -106,7 +86,7 @@ func (a *Attester) Verify(
 	// Verify that the attestation document contains the nonce that we may have
 	// asked it to embed.
 	if ourNonce != nil {
-		docNonce, err := nonce.FromSlice(res.Document.Nonce)
+		docNonce, err := nonce.FromSlice(res.Document.Nonce[:])
 		if err != nil {
 			return nil, err
 		}
@@ -121,9 +101,5 @@ func (a *Attester) Verify(
 		err = ErrDebugMode
 	}
 
-	return &enclave.AuxInfo{
-		Nonce:     convertFrom(res.Document.Nonce),
-		UserData:  convertFrom(res.Document.UserData),
-		PublicKey: convertFrom(res.Document.PublicKey),
-	}, err
+	return res.Document, err
 }

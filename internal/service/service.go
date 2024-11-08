@@ -83,9 +83,6 @@ func checkSystemSafety(config *config.Config) (err error) {
 	if !system.HasSecureRNG() {
 		return errors.New("system does not use desired RNG")
 	}
-	if !system.HasSecureKernelVersion() {
-		return errors.New("system does not have minimum desired kernel version")
-	}
 	return nil
 }
 

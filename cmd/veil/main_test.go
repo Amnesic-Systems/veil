@@ -265,18 +265,18 @@ func TestAttestation(t *testing.T) {
 			body, err := io.ReadAll(resp.Body)
 			require.NoError(t, err)
 			defer resp.Body.Close()
-			var a enclave.AttestationDoc
+			var a enclave.RawDocument
 			require.NoError(t, json.Unmarshal(body, &a))
 
 			// Verify the attestation document.  We expect no error but if the
 			// test is run inside a Nitro Enclave, we will get ErrDebugMode.
-			aux, err := attester.Verify(&a, c.nonce)
+			doc, err := attester.Verify(&a, c.nonce)
 			if err != nil {
 				require.ErrorIs(t, err, nitro.ErrDebugMode, errFromBody(t, resp))
 			}
 
 			// Ensure that the recovered nonce matches what we sent.
-			n, err := attestation.GetNonce(aux)
+			n, err := attestation.GetNonce(&doc.AuxInfo)
 			require.NoError(t, err)
 			require.Equal(t, c.nonce, n)
 		})
