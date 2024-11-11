@@ -26,10 +26,10 @@ import (
 )
 
 type config struct {
-	Verbose bool
-	Addr    string
-	Testing bool
-	PCRs    enclave.PCR
+	addr    string
+	verbose bool
+	testing bool
+	pcrs    enclave.PCR
 }
 
 func parseFlags(out io.Writer, args []string) (_ *config, err error) {
@@ -43,15 +43,15 @@ func parseFlags(out io.Writer, args []string) (_ *config, err error) {
 		"",
 		"Address of the enclave, e.g.: https://example.com:8443",
 	)
-	measurements := fs.String(
-		"measurements",
+	pcrs := fs.String(
+		"pcrs",
 		"",
-		"JSON-encoded enclave image measurements",
+		"JSON-encoded enclave image measurements as emitted by 'nitro-cli build'",
 	)
 	verbose := fs.Bool(
 		"verbose",
 		false,
-		"Enable extra logging",
+		"Enable verbose logging",
 	)
 	testing := fs.Bool(
 		"insecure",
@@ -66,21 +66,21 @@ func parseFlags(out io.Writer, args []string) (_ *config, err error) {
 	if *addr == "" {
 		return nil, errors.New("flag -addr must be provided")
 	}
-	if *measurements == "" {
-		return nil, errors.New("flag -measurements must be provided")
+	if *pcrs == "" {
+		return nil, errors.New("flag -pcrs must be provided")
 	}
 
-	// Convert the given JSON enclave measurements to a PCR struct.
-	pcr, err := toPCR([]byte(*measurements))
+	// Convert the given JSON-encoded  enclave measurements to a PCR struct.
+	pcr, err := toPCR([]byte(*pcrs))
 	if err != nil {
 		return nil, err
 	}
 
 	return &config{
-		Addr:    *addr,
-		Testing: *testing,
-		Verbose: *verbose,
-		PCRs:    pcr,
+		addr:    *addr,
+		testing: *testing,
+		verbose: *verbose,
+		pcrs:    pcr,
 	}, nil
 }
 
@@ -132,26 +132,23 @@ func run(ctx context.Context, out *os.File, args []string) error {
 	if err != nil {
 		return err
 	}
-	if cfg.Addr == "" {
-		return fmt.Errorf("missing addr argument")
-	}
-
 	return attestEnclave(ctx, cfg)
 }
 
 func attestEnclave(ctx context.Context, cfg *config) (err error) {
 	defer errs.Wrap(&err, "failed to attest enclave")
 
+	// Generate a nonce to ensure that the attestation document is fresh.
 	nonce, err := nonce.New()
 	if err != nil {
 		return err
 	}
 
-	// Request the enclave's attestation document.  We don't care about HTTPS
+	// Request the enclave's attestation document.  We don't verify HTTPS
 	// certificates because authentication is happening via the attestation
 	// document.
 	client := httputil.NewNoAuthHTTPClient()
-	url := cfg.Addr + "/enclave/attestation?nonce=" + nonce.URLEncode()
+	url := cfg.addr + "/enclave/attestation?nonce=" + nonce.URLEncode()
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return err
@@ -179,7 +176,7 @@ func attestEnclave(ctx context.Context, cfg *config) (err error) {
 	// talking to an enclave.  The nonce provides assurance that we are talking
 	// to an alive enclave (instead of a replayed attestation document).
 	var attester enclave.Attester = nitro.NewAttester()
-	if cfg.Testing {
+	if cfg.testing {
 		attester = noop.NewAttester()
 	}
 	doc, err := attester.Verify(&rawDoc, nonce)
@@ -191,18 +188,18 @@ func attestEnclave(ctx context.Context, cfg *config) (err error) {
 	// ideal; we should either have the rest of the code tolerate empty PCR
 	// values or fix the nsm package, so it doesn't return empty PCR values.
 	empty := make([]byte, sha512.Size384)
-	for key, value := range doc.PCRs {
-		if bytes.Equal(value, empty) {
-			delete(doc.PCRs, key)
+	for i, pcr := range doc.PCRs {
+		if bytes.Equal(pcr, empty) {
+			delete(doc.PCRs, i)
 		}
 	}
 
 	// Verify the attestation document's PCR values, which provide assurance
 	// that the remote enclave's image and kernel match the local copy.
-	if !cfg.PCRs.Equal(doc.PCRs) {
+	if !cfg.pcrs.Equal(doc.PCRs) {
 		log.Println("Enclave's code DOES NOT match local code!")
-		if cfg.Verbose {
-			log.Printf("Expected\n%sbut got\n%s", cfg.PCRs, doc.PCRs)
+		if cfg.verbose {
+			log.Printf("Expected\n%sbut got\n%s", cfg.pcrs, doc.PCRs)
 		}
 	} else {
 		log.Println("Enclave's code matches local code!")

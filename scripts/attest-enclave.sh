@@ -17,7 +17,8 @@ echo "[+] Building reproducible enclave app image." >&2
 
 # The following Dockerfile is used to build the enclave image, which requires
 # the nitro-cli tool.
-cat > Dockerfile <<EOF
+dockerfile=Dockerfile
+cat > "$dockerfile" <<EOF
 FROM public.ecr.aws/amazonlinux/amazonlinux:2023
 
 # See:
@@ -29,6 +30,8 @@ RUN dnf install aws-nitro-enclaves-cli-devel -y
 # discard the stderr output, which leaves us with only the JSON output.
 CMD ["bash", "-c", "nitro-cli build-enclave --docker-uri $docker_image --output-file /dev/null 2>/dev/null"]
 EOF
+trap "rm -f $dockerfile" EXIT
+trap "rm -f $dockerfile" SIGINT
 
 # We're using --no-cache because AWS's nitro-cli may update, at which point the
 # builder image will use an outdated copy, which will result in an unexpected
@@ -55,4 +58,4 @@ echo "[+] Fetching remote attestation." >&2
 script_dir=$(dirname "$0")
 go run "${script_dir}/../cmd/veil-verify/main.go" \
     -addr "$enclave" \
-    -measurements "$measurements"
+    -pcrs "$measurements"
