@@ -102,6 +102,17 @@ func TestPCRsEqual(t *testing.T) {
 			want: false,
 		},
 		{
+			name: "length mismatch due to PCR4",
+			pcr1: PCR{
+				1: []byte("foo"),
+				4: []byte("bar"),
+			},
+			pcr2: PCR{
+				1: []byte("foo"),
+			},
+			want: true,
+		},
+		{
 			name: "PCR index mismatch",
 			pcr1: PCR{
 				1: []byte("foo"),
