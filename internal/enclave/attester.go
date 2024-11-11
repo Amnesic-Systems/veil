@@ -25,7 +25,7 @@ type Document struct {
 	ModuleID    string   `cbor:"module_id" json:"module_id"`
 	Timestamp   uint64   `cbor:"timestamp" json:"timestamp"`
 	Digest      string   `cbor:"digest" json:"digest"`
-	PCRs        pcr      `cbor:"pcrs" json:"pcrs"`
+	PCRs        PCR      `cbor:"pcrs" json:"pcrs"`
 	Certificate []byte   `cbor:"certificate" json:"certificate"`
 	CABundle    [][]byte `cbor:"cabundle" json:"cabundle"`
 	AuxInfo
