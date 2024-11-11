@@ -10,16 +10,16 @@ import (
 func TestPCRsFromDebugMode(t *testing.T) {
 	cases := []struct {
 		name string
-		pcrs pcr
+		pcrs PCR
 		want bool
 	}{
 		{
 			name: "empty",
-			pcrs: pcr{},
+			pcrs: PCR{},
 		},
 		{
 			name: "debug mode",
-			pcrs: pcr{
+			pcrs: PCR{
 				0: emptyPCR,
 				1: emptyPCR,
 				2: emptyPCR,
@@ -30,7 +30,7 @@ func TestPCRsFromDebugMode(t *testing.T) {
 		},
 		{
 			name: "not debug mode",
-			pcrs: pcr{
+			pcrs: PCR{
 				0: []byte("foo"),
 				1: emptyPCR,
 				2: emptyPCR,
@@ -48,43 +48,43 @@ func TestPCRsFromDebugMode(t *testing.T) {
 func TestPCRsEqual(t *testing.T) {
 	cases := []struct {
 		name string
-		pcr1 pcr
-		pcr2 pcr
+		pcr1 PCR
+		pcr2 PCR
 		want bool
 	}{
 		{
 			name: "empty",
-			pcr1: pcr{},
-			pcr2: pcr{},
+			pcr1: PCR{},
+			pcr2: PCR{},
 			want: true,
 		},
 		{
 			name: "identical",
-			pcr1: pcr{
+			pcr1: PCR{
 				1: []byte("foobar"),
 			},
-			pcr2: pcr{
+			pcr2: PCR{
 				1: []byte("foobar"),
 			},
 			want: true,
 		},
 		{
 			name: "PCR mismatch",
-			pcr1: pcr{
+			pcr1: PCR{
 				1: []byte("foobar"),
 			},
-			pcr2: pcr{
+			pcr2: PCR{
 				1: []byte("barfoo"),
 			},
 			want: false,
 		},
 		{
 			name: "ignore PCR4",
-			pcr1: pcr{
+			pcr1: PCR{
 				1: []byte("foobar"),
 				4: []byte("foo"),
 			},
-			pcr2: pcr{
+			pcr2: PCR{
 				1: []byte("foobar"),
 				4: []byte("bar"),
 			},
@@ -92,21 +92,21 @@ func TestPCRsEqual(t *testing.T) {
 		},
 		{
 			name: "length mismatch",
-			pcr1: pcr{
+			pcr1: PCR{
 				1: []byte("foobar"),
 				2: []byte("foo"),
 			},
-			pcr2: pcr{
+			pcr2: PCR{
 				1: []byte("foobar"),
 			},
 			want: false,
 		},
 		{
 			name: "PCR index mismatch",
-			pcr1: pcr{
+			pcr1: PCR{
 				1: []byte("foo"),
 			},
-			pcr2: pcr{
+			pcr2: PCR{
 				2: []byte("foo"),
 			},
 			want: false,
