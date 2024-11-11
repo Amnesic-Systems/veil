@@ -33,7 +33,6 @@ import (
 	"crypto/sha256"
 	"crypto/sha512"
 	"crypto/x509"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -329,12 +328,6 @@ func verify(data []byte, options verifyOptions) (_ *Result, err error) {
 	if !sigOK {
 		return nil, errors.New("payload's signature does not match signature from certificate")
 	}
-
-	b, err := json.Marshal(doc.PCRs)
-	if err != nil {
-		return nil, err
-	}
-	fmt.Println(string(b))
 
 	return &Result{
 		Document:     &doc,
