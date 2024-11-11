@@ -22,8 +22,8 @@ import (
 )
 
 const (
-	defaultExtPubPort = "8080"
-	defaultIntPort    = "8081"
+	defaultExtPubPort = "8443"
+	defaultIntPort    = "8080"
 )
 
 func parseFlags(out io.Writer, args []string) (*config.Config, error) {
