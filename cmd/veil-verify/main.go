@@ -25,6 +25,12 @@ import (
 	"github.com/Amnesic-Systems/veil/internal/util"
 )
 
+var (
+	errFailedToAttest  = errors.New("failed to attest enclave")
+	errFailedToParse   = errors.New("failed to parse flags")
+	errFailedToConvert = errors.New("failed to convert measurements to PCR")
+)
+
 type config struct {
 	addr    string
 	verbose bool
@@ -33,7 +39,7 @@ type config struct {
 }
 
 func parseFlags(out io.Writer, args []string) (_ *config, err error) {
-	defer errs.Wrap(&err, "failed to parse flags")
+	defer errs.WrapErr(&err, errFailedToParse)
 
 	fs := flag.NewFlagSet("veil-verify", flag.ContinueOnError)
 	fs.SetOutput(out)
@@ -85,7 +91,7 @@ func parseFlags(out io.Writer, args []string) (_ *config, err error) {
 }
 
 func toPCR(jsonMsmts []byte) (_ enclave.PCR, err error) {
-	defer errs.Wrap(&err, "failed to convert measurements to PCR")
+	defer errs.WrapErr(&err, errFailedToConvert)
 
 	// This structs represents the JSON-encoded measurements of the enclave
 	// image.  The JSON tags must match the output of the nitro-cli command
@@ -124,7 +130,7 @@ func toPCR(jsonMsmts []byte) (_ enclave.PCR, err error) {
 	}, nil
 }
 
-func run(ctx context.Context, out *os.File, args []string) error {
+func run(ctx context.Context, out io.Writer, args []string) error {
 	ctx, cancel := signal.NotifyContext(ctx, os.Interrupt)
 	defer cancel()
 
@@ -136,7 +142,7 @@ func run(ctx context.Context, out *os.File, args []string) error {
 }
 
 func attestEnclave(ctx context.Context, cfg *config) (err error) {
-	defer errs.Wrap(&err, "failed to attest enclave")
+	defer errs.WrapErr(&err, errFailedToAttest)
 
 	// Generate a nonce to ensure that the attestation document is fresh.
 	nonce, err := nonce.New()
