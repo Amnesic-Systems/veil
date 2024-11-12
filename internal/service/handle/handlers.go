@@ -3,7 +3,6 @@ package handle
 import (
 	"crypto/sha256"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -15,18 +14,6 @@ import (
 	"github.com/Amnesic-Systems/veil/internal/httputil"
 	"github.com/Amnesic-Systems/veil/internal/service/attestation"
 	"github.com/Amnesic-Systems/veil/internal/util"
-)
-
-const (
-	// The maximum length of the key material (in bytes) that enclave
-	// applications can PUT to our HTTP API.
-	maxKeyMaterialLen = 1024 * 1024
-)
-
-var (
-	errFailedReqBody         = errors.New("failed to read request body")
-	errDesignationInProgress = errors.New("leader designation in progress")
-	errEndpointGone          = errors.New("endpoint not meant to be used")
 )
 
 // Index informs the visitor that this host runs inside an enclave. This is
