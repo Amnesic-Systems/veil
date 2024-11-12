@@ -38,20 +38,18 @@ func Run(
 		log.Fatalf("Failed to set up system: %v", err)
 	}
 
-	// Initialize the enclave keys for enclave synchronization.
+	// Create a TLS certificate for the external Web server.
 	cert, key, err := httputil.CreateCertificate(config.FQDN)
 	if err != nil {
 		log.Fatalf("Failed to create certificate: %v", err)
 	}
-	keys := new(enclave.Keys)
-	keys.SetVeilKeys(key, cert)
 
 	// Initialize hashes for the attestation document.
 	hashes := new(attestation.Hashes)
 	hashes.SetTLSHash(addr.Of(sha256.Sum256(cert)))
 
 	// Initialize Web servers.
-	intSrv := newIntSrv(config, keys, hashes, appReady)
+	intSrv := newIntSrv(config, hashes, appReady)
 	builder := attestation.NewBuilder(
 		attester,
 		attestation.WithHashes(hashes),
@@ -143,12 +141,11 @@ func startAllWebSrvs(
 
 func newIntSrv(
 	config *config.Config,
-	keys *enclave.Keys,
 	hashes *attestation.Hashes,
 	appReady chan struct{},
 ) *http.Server {
 	r := chi.NewRouter()
-	addInternalRoutes(r, config, keys, hashes, appReady)
+	addInternalRoutes(r, config, hashes, appReady)
 
 	return &http.Server{
 		Addr:    net.JoinHostPort("127.0.0.1", config.IntPort),

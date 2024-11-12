@@ -4,7 +4,6 @@ import (
 	"net/http/httputil"
 
 	"github.com/Amnesic-Systems/veil/internal/config"
-	"github.com/Amnesic-Systems/veil/internal/enclave"
 	"github.com/Amnesic-Systems/veil/internal/service/attestation"
 	"github.com/Amnesic-Systems/veil/internal/service/handle"
 	"github.com/go-chi/chi/v5"
@@ -38,7 +37,6 @@ func addExternalPublicRoutes(
 func addInternalRoutes(
 	r *chi.Mux,
 	config *config.Config,
-	keys *enclave.Keys,
 	hashes *attestation.Hashes,
 	appReady chan struct{},
 ) {
@@ -51,5 +49,4 @@ func addInternalRoutes(
 	}
 	r.Get("/enclave/hashes", handle.Hashes(hashes))
 	r.Post("/enclave/hash", handle.AppHash(hashes.SetAppHash))
-	r.Handle("/enclave/state", handle.NewState(keys))
 }
