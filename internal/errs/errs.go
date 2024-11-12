@@ -16,3 +16,9 @@ func Wrap(err *error, str string, args ...any) {
 		*err = fmt.Errorf("%s: %w", fmt.Sprintf(str, args...), *err)
 	}
 }
+
+func WrapErr(err *error, new error) {
+	if *err != nil {
+		*err = fmt.Errorf("%w: %w", new, *err)
+	}
+}
