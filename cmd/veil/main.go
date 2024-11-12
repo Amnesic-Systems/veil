@@ -55,10 +55,10 @@ func parseFlags(out io.Writer, args []string) (*config.Config, error) {
 		defaultIntPort,
 		"internal port",
 	)
-	sourceCodeURI := fs.String(
-		"source-code-uri",
+	enclaveCodeURI := fs.String(
+		"enclave-code-uri",
 		"",
-		"source code URI",
+		"the enclave application's source code",
 	)
 	waitForApp := fs.Bool(
 		"wait-for-app",
@@ -78,14 +78,14 @@ func parseFlags(out io.Writer, args []string) (*config.Config, error) {
 
 	// Build and validate the config.
 	return &config.Config{
-		AppWebSrv:     util.Must(url.Parse(*appWebSrv)),
-		Debug:         *debug,
-		ExtPubPort:    *extPubPort,
-		FQDN:          *fqdn,
-		IntPort:       *intPort,
-		SourceCodeURI: *sourceCodeURI,
-		Testing:       *enableTesting,
-		WaitForApp:    *waitForApp,
+		AppWebSrv:      util.Must(url.Parse(*appWebSrv)),
+		Debug:          *debug,
+		ExtPubPort:     *extPubPort,
+		FQDN:           *fqdn,
+		IntPort:        *intPort,
+		EnclaveCodeURI: *enclaveCodeURI,
+		Testing:        *enableTesting,
+		WaitForApp:     *waitForApp,
 	}, nil
 }
 

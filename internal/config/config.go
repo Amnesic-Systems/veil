@@ -47,11 +47,11 @@ type Config struct {
 	// is only used by the enclave application.  This field is required.
 	IntPort string
 
-	// SourceCodeURI contains the URI of the software repository that's running
+	// EnclaveCodeURI contains the URI of the software repository that's running
 	// inside the enclave, e.g., "https://github.com/foo/bar".  The URL is shown
 	// on the enclave's index page, as part of instructions on how to do remote
 	// attestation.
-	SourceCodeURI string
+	EnclaveCodeURI string
 
 	// Testing facilitates local testing by disabling safety checks that we
 	// would normally run on the enclave and by using the noop attester instead

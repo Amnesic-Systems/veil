@@ -34,9 +34,9 @@ var (
 func Index(cfg *config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		page := "This host runs inside an AWS Nitro Enclave."
-		if cfg.SourceCodeURI != "" {
+		if cfg.EnclaveCodeURI != "" {
 			page += fmt.Sprintf("\nThe application's source code is available at: %s.",
-				cfg.SourceCodeURI)
+				cfg.EnclaveCodeURI)
 		}
 		fmt.Fprintln(w, page)
 	}
