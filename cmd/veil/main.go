@@ -30,6 +30,11 @@ func parseFlags(out io.Writer, args []string) (*config.Config, error) {
 	fs := flag.NewFlagSet("veil", flag.ContinueOnError)
 	fs.SetOutput(out)
 
+	appWebSrv := fs.String(
+		"app-web-srv",
+		"localhost:8082",
+		"application web server",
+	)
 	debug := fs.Bool(
 		"debug",
 		false,
@@ -40,15 +45,20 @@ func parseFlags(out io.Writer, args []string) (*config.Config, error) {
 		defaultExtPubPort,
 		"external public port",
 	)
+	fqdn := fs.String(
+		"fqdn",
+		"",
+		"the enclave's fully qualified domain name",
+	)
 	intPort := fs.String(
 		"int-port",
 		defaultIntPort,
 		"internal port",
 	)
-	appWebSrv := fs.String(
-		"app-web-srv",
-		"localhost:8082",
-		"application web server",
+	enclaveCodeURI := fs.String(
+		"enclave-code-uri",
+		"",
+		"the enclave application's source code",
 	)
 	waitForApp := fs.Bool(
 		"wait-for-app",
@@ -68,12 +78,14 @@ func parseFlags(out io.Writer, args []string) (*config.Config, error) {
 
 	// Build and validate the config.
 	return &config.Config{
-		Debug:      *debug,
-		ExtPubPort: *extPubPort,
-		IntPort:    *intPort,
-		Testing:    *enableTesting,
-		WaitForApp: *waitForApp,
-		AppWebSrv:  util.Must(url.Parse(*appWebSrv)),
+		AppWebSrv:      util.Must(url.Parse(*appWebSrv)),
+		Debug:          *debug,
+		ExtPubPort:     *extPubPort,
+		FQDN:           *fqdn,
+		IntPort:        *intPort,
+		EnclaveCodeURI: *enclaveCodeURI,
+		Testing:        *enableTesting,
+		WaitForApp:     *waitForApp,
 	}, nil
 }
 

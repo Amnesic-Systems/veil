@@ -174,6 +174,19 @@ func TestPages(t *testing.T) {
 	}
 }
 
+func TestEnclaveCodeURI(t *testing.T) {
+	const codeURI = "https://example.com"
+	defer stopSvc(startSvc(t, withFlags("-enclave-code-uri", codeURI)))
+
+	resp, err := testutil.Client.Get(extSrv("/enclave"))
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	defer resp.Body.Close()
+
+	body := util.Must(io.ReadAll(resp.Body))
+	require.Contains(t, string(body), codeURI)
+}
+
 func TestReadyHandler(t *testing.T) {
 	defer stopSvc(startSvc(t, withFlags("-wait-for-app")))
 
