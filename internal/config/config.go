@@ -12,32 +12,13 @@ var _ = util.Validator(&Config{})
 
 // Config represents the configuration of our enclave service.
 type Config struct {
-	// SourceCodeURI contains the URI of the software repository that's running
-	// inside the enclave, e.g., "https://github.com/foo/bar".  The URL is shown
-	// on the enclave's index page, as part of instructions on how to do remote
-	// attestation.
-	SourceCodeURI string
-
-	// FQDN contains the fully qualified domain name that's set in the HTTPS
-	// certificate of the enclave's Web server, e.g. "example.com".  This field
-	// is required.
-	FQDN string
-
-	// ExtPubPort contains the TCP port that the public Web server should
-	// listen on, e.g. 443.  This port is not *directly* reachable by the
-	// Internet but the EC2 host's proxy *does* forward Internet traffic to
-	// this port.  This field is required.
-	ExtPubPort string
-
-	// IntPort contains the TCP port that the internal Web server should listen
-	// on, e.g., 8080.  This port is only reachable from within the enclave and
-	// is only used by the enclave application.  This field is required.
-	IntPort string
-
-	// Testing facilitates local testing by disabling safety checks that we
-	// would normally run on the enclave and by using the noop attester instead
-	// of the real attester.
-	Testing bool
+	// AppWebSrv should be set to the enclave-internal Web server of the
+	// enclave application, e.g., "http://127.0.0.1:8080".  Nitriding acts as a
+	// TLS-terminating reverse proxy and forwards incoming HTTP requests to
+	// this Web server.  Note that this configuration option is only necessary
+	// if the enclave application exposes an HTTP server.  Non-HTTP enclave
+	// applications can ignore this.
+	AppWebSrv *url.URL
 
 	// Debug can be set to true to see debug messages, i.e., if you are
 	// starting the enclave in debug mode by running:
@@ -50,13 +31,32 @@ type Config struct {
 	// nitro-cli's "--debug-mode" flag.
 	Debug bool
 
-	// AppWebSrv should be set to the enclave-internal Web server of the
-	// enclave application, e.g., "http://127.0.0.1:8080".  Nitriding acts as a
-	// TLS-terminating reverse proxy and forwards incoming HTTP requests to
-	// this Web server.  Note that this configuration option is only necessary
-	// if the enclave application exposes an HTTP server.  Non-HTTP enclave
-	// applications can ignore this.
-	AppWebSrv *url.URL
+	// ExtPubPort contains the TCP port that the public Web server should
+	// listen on, e.g. 443.  This port is not *directly* reachable by the
+	// Internet but the EC2 host's proxy *does* forward Internet traffic to
+	// this port.  This field is required.
+	ExtPubPort string
+
+	// FQDN contains the fully qualified domain name that's set in the HTTPS
+	// certificate of the enclave's Web server, e.g. "example.com".  This field
+	// is required.
+	FQDN string
+
+	// IntPort contains the TCP port that the internal Web server should listen
+	// on, e.g., 8080.  This port is only reachable from within the enclave and
+	// is only used by the enclave application.  This field is required.
+	IntPort string
+
+	// SourceCodeURI contains the URI of the software repository that's running
+	// inside the enclave, e.g., "https://github.com/foo/bar".  The URL is shown
+	// on the enclave's index page, as part of instructions on how to do remote
+	// attestation.
+	SourceCodeURI string
+
+	// Testing facilitates local testing by disabling safety checks that we
+	// would normally run on the enclave and by using the noop attester instead
+	// of the real attester.
+	Testing bool
 
 	// WaitForApp instructs nitriding to wait for the application's signal
 	// before launching the Internet-facing Web server.  Set this flag if your
