@@ -9,38 +9,29 @@ import (
 )
 
 func TestConfig(t *testing.T) {
-	defaultConfig := Config{
-		ExtPort: "443",
-		IntPort: "8081",
-	}
-
 	cases := []struct {
 		name     string
-		cfgFn    func() *Config
+		cfg      *Config
 		wantErrs int
 	}{
 		{
-			name: "default config",
-			cfgFn: func() *Config {
-				return &defaultConfig
-			},
-			wantErrs: 0,
+			name: "valid config",
+			cfg:  &Config{ExtPort: "8443", IntPort: "8080"},
 		},
 		{
-			name: "missing ports",
-			cfgFn: func() *Config {
-				confCopy := defaultConfig
-				confCopy.IntPort = "foo"
-				confCopy.ExtPort = ""
-				return &confCopy
-			},
+			name: "still valid config",
+			cfg:  &Config{ExtPort: "1", IntPort: "65535"},
+		},
+		{
+			name:     "invalid ports",
+			cfg:      &Config{ExtPort: "0", IntPort: "foo"},
 			wantErrs: 2,
 		},
 	}
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			errs := c.cfgFn().Validate(context.Background())
+			errs := c.cfg.Validate(context.Background())
 			require.Equal(t, c.wantErrs, len(errs), util.SprintErrs(errs))
 		})
 	}
