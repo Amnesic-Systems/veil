@@ -92,6 +92,10 @@ func setupSystem(config *config.Config) (err error) {
 		return nil
 	}
 
+	if err := system.SetResolver(config.Resolver); err != nil {
+		return err
+	}
+
 	if err := system.SeedRandomness(); err != nil {
 		return err
 	}

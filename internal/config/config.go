@@ -53,6 +53,10 @@ type Config struct {
 	// attestation.
 	EnclaveCodeURI string
 
+	// Resolver contains the IP address of the DNS resolver that the enclave
+	// should use, e.g., 1.1.1.1.
+	Resolver string
+
 	// Testing facilitates local testing by disabling safety checks that we
 	// would normally run on the enclave and by using the noop attester instead
 	// of the real attester.

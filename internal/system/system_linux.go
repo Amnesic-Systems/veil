@@ -2,9 +2,11 @@ package system
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"net"
 	"os"
+	"path"
 	"strings"
 	"syscall"
 	"unsafe"
@@ -21,6 +23,21 @@ const (
 	pathToRNG = "/sys/devices/virtual/misc/hw_random/rng_current"
 	wantRNG   = "nsm-hwrng"
 )
+
+func SetResolver(resolver string) (err error) {
+	defer errs.Wrap(&err, "failed to set DNS resolver")
+
+	// A Nitro Enclave's /etc/resolv.conf is a symlink to
+	// /run/resolvconf/resolv.conf.  As of 2022-11-21, the /run/ directory
+	// exists but not its resolvconf/ subdirectory.
+	dir := "/run/resolvconf/"
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return err
+	}
+
+	c := fmt.Sprintf("nameserver %s\n", resolver)
+	return os.WriteFile(path.Join(dir, "resolv.conf"), []byte(c), 0644)
+}
 
 func SeedRandomness() (err error) {
 	defer errs.Wrap(&err, "failed to seed entropy pool")

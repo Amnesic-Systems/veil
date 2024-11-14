@@ -70,6 +70,11 @@ func parseFlags(out io.Writer, args []string) (*config.Config, error) {
 		false,
 		"enable testing by disabling attestation",
 	)
+	resolver := fs.String(
+		"resolver",
+		"1.1.1.1",
+		"the DNS resolver used by veil",
+	)
 
 	if err := fs.Parse(args); err != nil {
 		fs.PrintDefaults()
@@ -84,6 +89,7 @@ func parseFlags(out io.Writer, args []string) (*config.Config, error) {
 		FQDN:           *fqdn,
 		IntPort:        *intPort,
 		EnclaveCodeURI: *enclaveCodeURI,
+		Resolver:       *resolver,
 		Testing:        *enableTesting,
 		WaitForApp:     *waitForApp,
 	}, nil
