@@ -10,8 +10,8 @@ import (
 
 func TestConfig(t *testing.T) {
 	defaultConfig := Config{
-		ExtPubPort: "443",
-		IntPort:    "8081",
+		ExtPort: "443",
+		IntPort: "8081",
 	}
 
 	cases := []struct {
@@ -31,7 +31,7 @@ func TestConfig(t *testing.T) {
 			cfgFn: func() *Config {
 				confCopy := defaultConfig
 				confCopy.IntPort = "foo"
-				confCopy.ExtPubPort = ""
+				confCopy.ExtPort = ""
 				return &confCopy
 			},
 			wantErrs: 2,
