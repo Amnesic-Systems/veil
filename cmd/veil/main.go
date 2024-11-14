@@ -22,8 +22,8 @@ import (
 )
 
 const (
-	defaultExtPubPort = "8443"
-	defaultIntPort    = "8080"
+	defaultExtPort = "8443"
+	defaultIntPort = "8080"
 )
 
 func parseFlags(out io.Writer, args []string) (*config.Config, error) {
@@ -40,9 +40,9 @@ func parseFlags(out io.Writer, args []string) (*config.Config, error) {
 		false,
 		"enable debug logging",
 	)
-	extPubPort := fs.String(
+	extPort := fs.String(
 		"ext-pub-port",
-		defaultExtPubPort,
+		defaultExtPort,
 		"external public port",
 	)
 	fqdn := fs.String(
@@ -80,7 +80,7 @@ func parseFlags(out io.Writer, args []string) (*config.Config, error) {
 	return &config.Config{
 		AppWebSrv:      util.Must(url.Parse(*appWebSrv)),
 		Debug:          *debug,
-		ExtPubPort:     *extPubPort,
+		ExtPort:        *extPort,
 		FQDN:           *fqdn,
 		IntPort:        *intPort,
 		EnclaveCodeURI: *enclaveCodeURI,

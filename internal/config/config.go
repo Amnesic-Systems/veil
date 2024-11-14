@@ -31,11 +31,11 @@ type Config struct {
 	// nitro-cli's "--debug-mode" flag.
 	Debug bool
 
-	// ExtPubPort contains the TCP port that the public Web server should
+	// ExtPort contains the TCP port that the public Web server should
 	// listen on, e.g. 443.  This port is not *directly* reachable by the
 	// Internet but the EC2 host's proxy *does* forward Internet traffic to
 	// this port.  This field is required.
-	ExtPubPort string
+	ExtPort string
 
 	// FQDN contains the fully qualified domain name that's set in the HTTPS
 	// certificate of the enclave's Web server, e.g. "example.com".  This field
@@ -83,8 +83,8 @@ func (c *Config) Validate(_ context.Context) map[string]string {
 	problems := make(map[string]string)
 
 	// Check required fields.
-	if !isValidPort(c.ExtPubPort) {
-		problems["ExtPubPort"] = "must be a valid port number"
+	if !isValidPort(c.ExtPort) {
+		problems["ExtPort"] = "must be a valid port number"
 	}
 	if !isValidPort(c.IntPort) {
 		problems["IntPort"] = "must be a valid port number"

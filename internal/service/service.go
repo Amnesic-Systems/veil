@@ -161,7 +161,7 @@ func newExtSrv(
 	addExternalPublicRoutes(r, config, builder)
 
 	return &http.Server{
-		Addr:    net.JoinHostPort("0.0.0.0", config.ExtPubPort),
+		Addr:    net.JoinHostPort("0.0.0.0", config.ExtPort),
 		Handler: http.Handler(r),
 	}
 }
