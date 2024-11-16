@@ -132,8 +132,7 @@ func run(ctx context.Context, out io.Writer, args []string) (err error) {
 }
 
 func main() {
-	ctx := context.Background()
-	if err := run(ctx, os.Stdout, os.Args[1:]); err != nil {
+	if err := run(context.Background(), os.Stdout, os.Args[1:]); err != nil {
 		log.Fatalf("Failed to run veil: %v", err)
 	}
 }
