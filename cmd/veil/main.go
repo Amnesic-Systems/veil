@@ -32,7 +32,7 @@ func parseFlags(out io.Writer, args []string) (*config.Config, error) {
 
 	appWebSrv := fs.String(
 		"app-web-srv",
-		"localhost:8082",
+		"localhost:8081",
 		"application web server",
 	)
 	debug := fs.Bool(
