@@ -34,13 +34,6 @@ func NewVSOCK() *VsockTunneler {
 func (v *VsockTunneler) Start(ctx context.Context, wg *sync.WaitGroup) {
 	defer wg.Done()
 
-	// TODO
-	// Configure our DNS resolver.
-	// if err = writeResolvconf(); err != nil {
-	// 	errCh <- fmt.Errorf("failed to create resolv.conf: %w", err)
-	// }
-	log.Println("Configured DNS resolver.")
-
 	go func() {
 		var err error
 		for {
