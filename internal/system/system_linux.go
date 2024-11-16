@@ -2,9 +2,11 @@ package system
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"net"
 	"os"
+	"path"
 	"strings"
 	"syscall"
 	"unsafe"
@@ -22,8 +24,25 @@ const (
 	wantRNG   = "nsm-hwrng"
 )
 
+func SetResolver(resolver string) (err error) {
+	defer errs.Wrap(&err, "failed to set DNS resolver")
+	log.Printf("Setting DNS resolver to %s.", resolver)
+
+	// A Nitro Enclave's /etc/resolv.conf is a symlink to
+	// /run/resolvconf/resolv.conf.  As of 2022-11-21, the /run/ directory
+	// exists but not its resolvconf/ subdirectory.
+	dir := "/run/resolvconf/"
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return err
+	}
+
+	c := fmt.Sprintf("nameserver %s\n", resolver)
+	return os.WriteFile(path.Join(dir, "resolv.conf"), []byte(c), 0644)
+}
+
 func SeedRandomness() (err error) {
 	defer errs.Wrap(&err, "failed to seed entropy pool")
+	log.Println("Seeding system entropy pool.")
 
 	s, err := nsm.OpenDefaultSession()
 	if err != nil {
@@ -74,6 +93,7 @@ func SeedRandomness() (err error) {
 // SetupLo sets up the loopback interface.
 func SetupLo() (err error) {
 	defer errs.Wrap(&err, "failed to configure loopback interface")
+	log.Println("Setting up loopback interface.")
 
 	link, err := tenus.NewLinkFrom("lo")
 	if err != nil {
@@ -93,6 +113,7 @@ func SetupLo() (err error) {
 // RNG. This was suggested in:
 // https://blog.trailofbits.com/2024/09/24/notes-on-aws-nitro-enclaves-attack-surface/
 func HasSecureRNG() bool {
+	log.Println("Checking if system uses desired RNG.")
 	haveRNG, err := os.ReadFile(pathToRNG)
 	if err != nil {
 		log.Printf("Error reading %s: %v", pathToRNG, err)
@@ -106,6 +127,7 @@ func HasSecureRNG() bool {
 // includes important security updates. This was suggested in:
 // https://blog.trailofbits.com/2024/09/24/notes-on-aws-nitro-enclaves-attack-surface/
 func HasSecureKernelVersion() bool {
+	log.Println("Checking if system has desired kernel version.")
 	var uname syscall.Utsname
 	if err := syscall.Uname(&uname); err != nil {
 		log.Printf("Error calling uname system call: %v", err)
