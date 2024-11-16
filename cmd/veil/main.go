@@ -40,6 +40,11 @@ func parseFlags(out io.Writer, args []string) (*config.Config, error) {
 		false,
 		"enable debug logging",
 	)
+	enclaveCodeURI := fs.String(
+		"enclave-code-uri",
+		"",
+		"the enclave application's source code",
+	)
 	extPort := fs.String(
 		"ext-pub-port",
 		defaultExtPort,
@@ -55,25 +60,20 @@ func parseFlags(out io.Writer, args []string) (*config.Config, error) {
 		defaultIntPort,
 		"internal port",
 	)
-	enclaveCodeURI := fs.String(
-		"enclave-code-uri",
-		"",
-		"the enclave application's source code",
+	resolver := fs.String(
+		"resolver",
+		"1.1.1.1",
+		"the DNS resolver used by veil",
+	)
+	testing := fs.Bool(
+		"insecure",
+		false,
+		"enable testing by disabling attestation",
 	)
 	waitForApp := fs.Bool(
 		"wait-for-app",
 		false,
 		"wait for the application to signal readiness",
-	)
-	enableTesting := fs.Bool(
-		"insecure",
-		false,
-		"enable testing by disabling attestation",
-	)
-	resolver := fs.String(
-		"resolver",
-		"1.1.1.1",
-		"the DNS resolver used by veil",
 	)
 
 	if err := fs.Parse(args); err != nil {
@@ -85,12 +85,12 @@ func parseFlags(out io.Writer, args []string) (*config.Config, error) {
 	return &config.Config{
 		AppWebSrv:      util.Must(url.Parse(*appWebSrv)),
 		Debug:          *debug,
+		EnclaveCodeURI: *enclaveCodeURI,
 		ExtPort:        *extPort,
 		FQDN:           *fqdn,
 		IntPort:        *intPort,
-		EnclaveCodeURI: *enclaveCodeURI,
 		Resolver:       *resolver,
-		Testing:        *enableTesting,
+		Testing:        *testing,
 		WaitForApp:     *waitForApp,
 	}, nil
 }
