@@ -3,7 +3,6 @@ package config
 import (
 	"context"
 	"net/url"
-	"strconv"
 
 	"github.com/Amnesic-Systems/veil/internal/util"
 )
@@ -31,11 +30,17 @@ type Config struct {
 	// nitro-cli's "--debug-mode" flag.
 	Debug bool
 
+	// EnclaveCodeURI contains the URI of the software repository that's running
+	// inside the enclave, e.g., "https://github.com/foo/bar".  The URL is shown
+	// on the enclave's index page, as part of instructions on how to do remote
+	// attestation.
+	EnclaveCodeURI string
+
 	// ExtPort contains the TCP port that the public Web server should
 	// listen on, e.g. 443.  This port is not *directly* reachable by the
 	// Internet but the EC2 host's proxy *does* forward Internet traffic to
 	// this port.  This field is required.
-	ExtPort string
+	ExtPort int
 
 	// FQDN contains the fully qualified domain name that's set in the HTTPS
 	// certificate of the enclave's Web server, e.g. "example.com".  This field
@@ -45,13 +50,7 @@ type Config struct {
 	// IntPort contains the TCP port that the internal Web server should listen
 	// on, e.g., 8080.  This port is only reachable from within the enclave and
 	// is only used by the enclave application.  This field is required.
-	IntPort string
-
-	// EnclaveCodeURI contains the URI of the software repository that's running
-	// inside the enclave, e.g., "https://github.com/foo/bar".  The URL is shown
-	// on the enclave's index page, as part of instructions on how to do remote
-	// attestation.
-	EnclaveCodeURI string
+	IntPort int
 
 	// Resolver contains the IP address of the DNS resolver that the enclave
 	// should use, e.g., 1.1.1.1.
@@ -72,15 +71,8 @@ type Config struct {
 	WaitForApp bool
 }
 
-func isValidPort(port string) bool {
-	num, err := strconv.Atoi(port)
-	if err != nil {
-		return false
-	}
-	if num < 1 || num > 65535 {
-		return false
-	}
-	return true
+func isValidPort(port int) bool {
+	return port > 0 && port < 65536
 }
 
 func (c *Config) Validate(_ context.Context) map[string]string {

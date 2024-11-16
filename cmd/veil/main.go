@@ -22,8 +22,8 @@ import (
 )
 
 const (
-	defaultExtPort = "8443"
-	defaultIntPort = "8080"
+	defaultExtPort = 8443
+	defaultIntPort = 8080
 )
 
 func parseFlags(out io.Writer, args []string) (*config.Config, error) {
@@ -32,7 +32,7 @@ func parseFlags(out io.Writer, args []string) (*config.Config, error) {
 
 	appWebSrv := fs.String(
 		"app-web-srv",
-		"localhost:8082",
+		"localhost:8081",
 		"application web server",
 	)
 	debug := fs.Bool(
@@ -40,7 +40,12 @@ func parseFlags(out io.Writer, args []string) (*config.Config, error) {
 		false,
 		"enable debug logging",
 	)
-	extPort := fs.String(
+	enclaveCodeURI := fs.String(
+		"enclave-code-uri",
+		"",
+		"the enclave application's source code",
+	)
+	extPort := fs.Int(
 		"ext-pub-port",
 		defaultExtPort,
 		"external public port",
@@ -50,30 +55,25 @@ func parseFlags(out io.Writer, args []string) (*config.Config, error) {
 		"",
 		"the enclave's fully qualified domain name",
 	)
-	intPort := fs.String(
+	intPort := fs.Int(
 		"int-port",
 		defaultIntPort,
 		"internal port",
-	)
-	enclaveCodeURI := fs.String(
-		"enclave-code-uri",
-		"",
-		"the enclave application's source code",
-	)
-	waitForApp := fs.Bool(
-		"wait-for-app",
-		false,
-		"wait for the application to signal readiness",
-	)
-	enableTesting := fs.Bool(
-		"insecure",
-		false,
-		"enable testing by disabling attestation",
 	)
 	resolver := fs.String(
 		"resolver",
 		"1.1.1.1",
 		"the DNS resolver used by veil",
+	)
+	testing := fs.Bool(
+		"insecure",
+		false,
+		"enable testing by disabling attestation",
+	)
+	waitForApp := fs.Bool(
+		"wait-for-app",
+		false,
+		"wait for the application to signal readiness",
 	)
 
 	if err := fs.Parse(args); err != nil {
@@ -85,12 +85,12 @@ func parseFlags(out io.Writer, args []string) (*config.Config, error) {
 	return &config.Config{
 		AppWebSrv:      util.Must(url.Parse(*appWebSrv)),
 		Debug:          *debug,
+		EnclaveCodeURI: *enclaveCodeURI,
 		ExtPort:        *extPort,
 		FQDN:           *fqdn,
 		IntPort:        *intPort,
-		EnclaveCodeURI: *enclaveCodeURI,
 		Resolver:       *resolver,
-		Testing:        *enableTesting,
+		Testing:        *testing,
 		WaitForApp:     *waitForApp,
 	}, nil
 }
@@ -132,8 +132,7 @@ func run(ctx context.Context, out io.Writer, args []string) (err error) {
 }
 
 func main() {
-	ctx := context.Background()
-	if err := run(ctx, os.Stdout, os.Args[1:]); err != nil {
+	if err := run(context.Background(), os.Stdout, os.Args[1:]); err != nil {
 		log.Fatalf("Failed to run veil: %v", err)
 	}
 }
