@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"crypto/tls"
 	"errors"
+	"fmt"
 	"io/fs"
 	"log"
 	"net"
@@ -152,7 +153,7 @@ func newIntSrv(
 	addInternalRoutes(r, config, hashes, appReady)
 
 	return &http.Server{
-		Addr:    net.JoinHostPort("127.0.0.1", config.IntPort),
+		Addr:    net.JoinHostPort("127.0.0.1", fmt.Sprintf("%d", config.IntPort)),
 		Handler: http.Handler(r),
 	}
 }
@@ -165,7 +166,7 @@ func newExtSrv(
 	addExternalPublicRoutes(r, config, builder)
 
 	return &http.Server{
-		Addr:    net.JoinHostPort("0.0.0.0", config.ExtPort),
+		Addr:    net.JoinHostPort("0.0.0.0", fmt.Sprintf("%d", config.ExtPort)),
 		Handler: http.Handler(r),
 	}
 }

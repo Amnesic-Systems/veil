@@ -16,15 +16,15 @@ func TestConfig(t *testing.T) {
 	}{
 		{
 			name: "valid config",
-			cfg:  &Config{ExtPort: "8443", IntPort: "8080"},
+			cfg:  &Config{ExtPort: 8443, IntPort: 8080},
 		},
 		{
 			name: "still valid config",
-			cfg:  &Config{ExtPort: "1", IntPort: "65535"},
+			cfg:  &Config{ExtPort: 1, IntPort: 65535},
 		},
 		{
 			name:     "invalid ports",
-			cfg:      &Config{ExtPort: "0", IntPort: "foo"},
+			cfg:      &Config{ExtPort: 0, IntPort: 65536},
 			wantErrs: 2,
 		},
 	}

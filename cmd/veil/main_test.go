@@ -98,11 +98,11 @@ func stopSvc(stop func()) {
 }
 
 func intSrv(path string) string {
-	return fmt.Sprintf("http://127.0.0.1:%s%s", defaultIntPort, path)
+	return fmt.Sprintf("http://127.0.0.1:%d%s", defaultIntPort, path)
 }
 
 func extSrv(path string) string {
-	return fmt.Sprintf("https://127.0.0.1:%s%s", defaultExtPort, path)
+	return fmt.Sprintf("https://127.0.0.1:%d%s", defaultExtPort, path)
 }
 
 func errFromBody(t *testing.T, resp *http.Response) string {

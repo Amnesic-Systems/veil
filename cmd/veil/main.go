@@ -22,8 +22,8 @@ import (
 )
 
 const (
-	defaultExtPort = "8443"
-	defaultIntPort = "8080"
+	defaultExtPort = 8443
+	defaultIntPort = 8080
 )
 
 func parseFlags(out io.Writer, args []string) (*config.Config, error) {
@@ -45,7 +45,7 @@ func parseFlags(out io.Writer, args []string) (*config.Config, error) {
 		"",
 		"the enclave application's source code",
 	)
-	extPort := fs.String(
+	extPort := fs.Int(
 		"ext-pub-port",
 		defaultExtPort,
 		"external public port",
@@ -55,7 +55,7 @@ func parseFlags(out io.Writer, args []string) (*config.Config, error) {
 		"",
 		"the enclave's fully qualified domain name",
 	)
-	intPort := fs.String(
+	intPort := fs.Int(
 		"int-port",
 		defaultIntPort,
 		"internal port",
