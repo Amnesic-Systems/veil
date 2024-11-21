@@ -23,7 +23,7 @@ import (
 	"github.com/Amnesic-Systems/veil/internal/enclave/nitro"
 	"github.com/Amnesic-Systems/veil/internal/enclave/noop"
 	"github.com/Amnesic-Systems/veil/internal/httperr"
-	"github.com/Amnesic-Systems/veil/internal/httputil"
+	"github.com/Amnesic-Systems/veil/internal/httpx"
 	"github.com/Amnesic-Systems/veil/internal/nonce"
 	"github.com/Amnesic-Systems/veil/internal/service/attestation"
 	"github.com/Amnesic-Systems/veil/internal/testutil"
@@ -60,22 +60,14 @@ func startSvc(t *testing.T, cfg []string) func() {
 	// Block until the services are ready.
 	deadline, cancelFunc := context.WithDeadline(ctx, time.Now().Add(time.Second))
 	defer cancelFunc()
-	if err := httputil.WaitForSvc(
-		deadline,
-		httputil.NewNoAuthHTTPClient(),
-		intSrv("/"),
-	); err != nil {
+	if err := httpx.WaitForSvc(deadline, httpx.NewUnauthClient(), intSrv("/")); err != nil {
 		t.Logf("error waiting for internal service: %v", err)
 		return f
 	}
 	if !slices.Contains(cfg, "-wait-for-app") {
 		deadline, cancelFunc := context.WithDeadline(ctx, time.Now().Add(time.Second))
 		defer cancelFunc()
-		if err := httputil.WaitForSvc(
-			deadline,
-			httputil.NewNoAuthHTTPClient(),
-			extSrv("/"),
-		); err != nil {
+		if err := httpx.WaitForSvc(deadline, httpx.NewUnauthClient(), extSrv("/")); err != nil {
 			t.Logf("error waiting for external service: %v", err)
 			return f
 		}

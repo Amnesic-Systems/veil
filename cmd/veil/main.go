@@ -20,7 +20,7 @@ import (
 	"github.com/Amnesic-Systems/veil/internal/enclave/nitro"
 	"github.com/Amnesic-Systems/veil/internal/enclave/noop"
 	"github.com/Amnesic-Systems/veil/internal/errs"
-	"github.com/Amnesic-Systems/veil/internal/httputil"
+	"github.com/Amnesic-Systems/veil/internal/httpx"
 	"github.com/Amnesic-Systems/veil/internal/service"
 	"github.com/Amnesic-Systems/veil/internal/tunnel"
 	"github.com/Amnesic-Systems/veil/internal/util"
@@ -160,7 +160,7 @@ func eventuallyRunAppCmd(ctx context.Context, cfg *config.Config, cmd string) (e
 	deadlineCtx, cancel := context.WithDeadline(ctx, time.Now().Add(time.Second))
 	defer cancel()
 	url := fmt.Sprintf("http://localhost:%d", cfg.IntPort)
-	if err := httputil.WaitForSvc(deadlineCtx, httputil.NewNoAuthHTTPClient(), url); err != nil {
+	if err := httpx.WaitForSvc(deadlineCtx, httpx.NewUnauthClient(), url); err != nil {
 		return err
 	}
 	log.Print("Internal service ready; running app command.")

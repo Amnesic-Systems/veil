@@ -20,7 +20,7 @@ import (
 	"github.com/Amnesic-Systems/veil/internal/enclave/nitro"
 	"github.com/Amnesic-Systems/veil/internal/enclave/noop"
 	"github.com/Amnesic-Systems/veil/internal/errs"
-	"github.com/Amnesic-Systems/veil/internal/httputil"
+	"github.com/Amnesic-Systems/veil/internal/httpx"
 	"github.com/Amnesic-Systems/veil/internal/nonce"
 	"github.com/Amnesic-Systems/veil/internal/util"
 )
@@ -153,7 +153,7 @@ func attestEnclave(ctx context.Context, cfg *config) (err error) {
 	// Request the enclave's attestation document.  We don't verify HTTPS
 	// certificates because authentication is happening via the attestation
 	// document.
-	client := httputil.NewNoAuthHTTPClient()
+	client := httpx.NewUnauthClient()
 	url := cfg.addr + "/enclave/attestation?nonce=" + nonce.URLEncode()
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {

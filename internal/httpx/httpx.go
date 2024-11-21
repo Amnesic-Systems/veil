@@ -1,4 +1,4 @@
-package httputil
+package httpx
 
 import (
 	"context"
@@ -59,11 +59,11 @@ func ExtractNonce(r *http.Request) (n *nonce.Nonce, err error) {
 	return n, nil
 }
 
-// NewNoAuthHTTPClient returns an HTTP client that skips HTTPS certificate
+// NewUnauthClient returns an HTTP client that skips HTTPS certificate
 // validation.  In the context of veil, this is fine because all we need is a
 // confidential channel; not an authenticated channel.  Authentication is
 // handled by the next layer, using attestation documents.
-func NewNoAuthHTTPClient() *http.Client {
+func NewUnauthClient() *http.Client {
 	transport := &http.Transport{
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,

@@ -11,7 +11,7 @@ import (
 	"github.com/Amnesic-Systems/veil/internal/addr"
 	"github.com/Amnesic-Systems/veil/internal/config"
 	"github.com/Amnesic-Systems/veil/internal/httperr"
-	"github.com/Amnesic-Systems/veil/internal/httputil"
+	"github.com/Amnesic-Systems/veil/internal/httpx"
 	"github.com/Amnesic-Systems/veil/internal/service/attestation"
 	"github.com/Amnesic-Systems/veil/internal/util"
 )
@@ -132,7 +132,7 @@ func Attestation(
 	builder *attestation.Builder,
 ) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		n, err := httputil.ExtractNonce(r)
+		n, err := httpx.ExtractNonce(r)
 		if err != nil {
 			encode(w, http.StatusBadRequest, httperr.New(err.Error()))
 			return
