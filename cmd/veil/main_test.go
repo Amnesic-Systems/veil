@@ -5,7 +5,6 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/json"
-	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -24,6 +23,7 @@ import (
 	"github.com/Amnesic-Systems/veil/internal/enclave/nitro"
 	"github.com/Amnesic-Systems/veil/internal/enclave/noop"
 	"github.com/Amnesic-Systems/veil/internal/httperr"
+	"github.com/Amnesic-Systems/veil/internal/httputil"
 	"github.com/Amnesic-Systems/veil/internal/nonce"
 	"github.com/Amnesic-Systems/veil/internal/service/attestation"
 	"github.com/Amnesic-Systems/veil/internal/testutil"
@@ -38,26 +38,6 @@ func withFlags(flag ...string) []string {
 		f = append(f, "-insecure")
 	}
 	return append(f, flag...)
-}
-
-func waitForSvc(t *testing.T, url string) error {
-	var (
-		start    = time.Now()
-		retry    = time.NewTicker(5 * time.Millisecond)
-		deadline = time.Second
-	)
-
-	for range retry.C {
-		if _, err := testutil.Client.Get(url); err == nil {
-			return nil
-		}
-		if time.Since(start) > deadline {
-			t.Logf("Web server %s still unavailable after %v.", url, deadline)
-			return errors.New("timeout")
-		}
-	}
-
-	return nil
 }
 
 func startSvc(t *testing.T, cfg []string) func() {
@@ -78,13 +58,25 @@ func startSvc(t *testing.T, cfg []string) func() {
 	}(ctx, wg)
 
 	// Block until the services are ready.
-	if err := waitForSvc(t, intSrv("/")); err != nil {
-		t.Logf("error waiting for service: %v", err)
+	deadline, cancelFunc := context.WithDeadline(ctx, time.Now().Add(time.Second))
+	defer cancelFunc()
+	if err := httputil.WaitForSvc(
+		deadline,
+		httputil.NewNoAuthHTTPClient(),
+		intSrv("/"),
+	); err != nil {
+		t.Logf("error waiting for internal service: %v", err)
 		return f
 	}
 	if !slices.Contains(cfg, "-wait-for-app") {
-		if err := waitForSvc(t, extSrv("/")); err != nil {
-			t.Logf("error waiting for service: %v", err)
+		deadline, cancelFunc := context.WithDeadline(ctx, time.Now().Add(time.Second))
+		defer cancelFunc()
+		if err := httputil.WaitForSvc(
+			deadline,
+			httputil.NewNoAuthHTTPClient(),
+			extSrv("/"),
+		); err != nil {
+			t.Logf("error waiting for external service: %v", err)
 			return f
 		}
 	}

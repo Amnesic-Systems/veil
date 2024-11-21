@@ -1,6 +1,7 @@
 package httputil
 
 import (
+	"context"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
@@ -10,6 +11,7 @@ import (
 	"encoding/base64"
 	"encoding/pem"
 	"errors"
+	"log"
 	"math/big"
 	"net/http"
 	"time"
@@ -24,9 +26,10 @@ const (
 )
 
 var (
-	errBadForm        = errors.New("failed to parse POST form data")
-	errNoNonce        = errors.New("could not find nonce in URL query parameters")
-	errBadNonceFormat = errors.New("unexpected nonce format; must be Base64 string")
+	errBadForm          = errors.New("failed to parse POST form data")
+	errNoNonce          = errors.New("could not find nonce in URL query parameters")
+	errBadNonceFormat   = errors.New("unexpected nonce format; must be Base64 string")
+	errDeadlineExceeded = errors.New("deadline exceeded")
 )
 
 // ExtractNonce extracts a nonce from the HTTP request's parameters, e.g.:
@@ -69,6 +72,39 @@ func NewNoAuthHTTPClient() *http.Client {
 	return &http.Client{
 		Transport: transport,
 		Timeout:   5 * time.Second,
+	}
+}
+
+func WaitForSvc(
+	ctx context.Context,
+	client *http.Client,
+	url string,
+) (err error) {
+	defer errs.Wrap(&err, "failed to wait for service")
+
+	start := time.Now()
+	deadline, ok := ctx.Deadline()
+	if !ok {
+		return errors.New("context has no deadline")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return err
+	}
+	req = req.WithContext(ctx)
+
+	for {
+		log.Print("Making request to service...")
+		if _, err := client.Do(req); err == nil {
+			log.Print("Service is ready.")
+			return nil
+		}
+		if time.Since(start) > deadline.Sub(start) {
+			log.Printf("%v > %v", time.Since(start), deadline.Sub(start))
+			return errDeadlineExceeded
+		}
+		time.Sleep(10 * time.Millisecond)
 	}
 }
 

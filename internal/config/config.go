@@ -11,6 +11,16 @@ var _ = util.Validator(&Config{})
 
 // Config represents the configuration of our enclave service.
 type Config struct {
+	// AppCmd can be set to the command that starts the enclave application.
+	// For example:
+	//
+	//	nc -l -p 1234
+	//
+	// Veil starts the given application after its internal Web server is
+	// running, and subsequently waits for the application to finish.  When the
+	// application stops or crashes, veil terminates.
+	AppCmd string
+
 	// AppWebSrv should be set to the enclave-internal Web server of the
 	// enclave application, e.g., "http://127.0.0.1:8080".  Nitriding acts as a
 	// TLS-terminating reverse proxy and forwards incoming HTTP requests to
