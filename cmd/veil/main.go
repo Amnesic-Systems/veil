@@ -173,7 +173,8 @@ func runAppCmd(ctx context.Context, cmdStr string) error {
 	args := strings.Split(cmdStr, " ")
 	cmd := exec.CommandContext(ctx, args[0], args[1:]...)
 
-	// Print the enclave application's stdout and stderr.
+	// Discard the enclave application's stdout and stderr.  Regardless, we have
+	// to consume its output to prevent the application from blocking.
 	appStderr, err := cmd.StderrPipe()
 	if err != nil {
 		return err
