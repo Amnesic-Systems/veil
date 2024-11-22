@@ -75,6 +75,10 @@ func NewUnauthClient() *http.Client {
 	}
 }
 
+// WaitForSvc waits for the service (specified by the URL) to become available
+// by making repeated HTTP GET requests using the given HTTP client.  This
+// function blocks until 1) the service responds with an HTTP response or 2) the
+// given context expires.
 func WaitForSvc(
 	ctx context.Context,
 	client *http.Client,
