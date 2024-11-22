@@ -136,6 +136,7 @@ func startAllWebSrvs(
 	// Wait until the context is canceled, at which point it's time to stop web
 	// servers.
 	<-ctx.Done()
+	log.Print("Context cancelled; shutting down veil.")
 	if err := intSrv.Shutdown(ctx); err != nil {
 		log.Printf("Error shutting down internal server: %v", err)
 	}
