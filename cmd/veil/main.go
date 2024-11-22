@@ -136,9 +136,10 @@ func run(ctx context.Context, out io.Writer, args []string) (err error) {
 		go func() {
 			if err := eventuallyRunAppCmd(ctx, cfg, cfg.AppCmd); err != nil {
 				log.Printf("App unavailable: %v", err)
-				// Shut down the service if the app command fails.
-				cancel()
 			}
+			// Shut down the service if the app command has terminated,
+			// successfully or not.
+			cancel()
 		}()
 	}
 
