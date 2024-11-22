@@ -8,7 +8,7 @@ import (
 	"net/http"
 
 	"github.com/Amnesic-Systems/veil/internal/httperr"
-	"github.com/Amnesic-Systems/veil/internal/httputil"
+	"github.com/Amnesic-Systems/veil/internal/httpx"
 	"github.com/Amnesic-Systems/veil/internal/service/attestation"
 )
 
@@ -33,7 +33,7 @@ func encodeAndAttest[T any](
 	// Try to extract the client's nonce from the request. If this fails, abort
 	// attestation because the client no longer has a way to verify the
 	// attestation document's freshness.
-	n, err := httputil.ExtractNonce(r)
+	n, err := httpx.ExtractNonce(r)
 	if err != nil {
 		log.Println(err)
 		encode(w, http.StatusBadRequest, httperr.New("found no valid nonce in HTTP request"))

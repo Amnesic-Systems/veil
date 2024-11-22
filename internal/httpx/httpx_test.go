@@ -1,9 +1,12 @@
-package httputil
+package httpx
 
 import (
+	"context"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -11,6 +14,48 @@ import (
 	"github.com/Amnesic-Systems/veil/internal/nonce"
 	"github.com/Amnesic-Systems/veil/internal/util"
 )
+
+func TestWaitForSvc(t *testing.T) {
+	ctx := context.Background()
+	deadline := 500 * time.Millisecond
+
+	cases := []struct {
+		name         string
+		unresponsive bool
+		wantErr      error
+	}{
+		{
+			name:         "unresponsive web server",
+			unresponsive: true,
+			wantErr:      errDeadlineExceeded,
+		},
+		{
+			name: "responsive web server",
+		},
+	}
+
+	newWebSrv := func(unresponsive bool) *httptest.Server {
+		return httptest.NewServer(
+			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if unresponsive {
+					<-r.Context().Done()
+				}
+				w.WriteHeader(http.StatusOK)
+			}),
+		)
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			websrv := newWebSrv(c.unresponsive)
+			defer websrv.Close()
+
+			ctx, cancelFunc := context.WithDeadline(ctx, time.Now().Add(deadline))
+			defer cancelFunc()
+			require.ErrorIs(t, WaitForSvc(ctx, websrv.Client(), websrv.URL), c.wantErr)
+		})
+	}
+}
 
 func TestExtractNonce(t *testing.T) {
 	cases := []struct {

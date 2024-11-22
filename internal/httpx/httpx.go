@@ -1,6 +1,7 @@
-package httputil
+package httpx
 
 import (
+	"context"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
@@ -10,6 +11,7 @@ import (
 	"encoding/base64"
 	"encoding/pem"
 	"errors"
+	"log"
 	"math/big"
 	"net/http"
 	"time"
@@ -24,9 +26,10 @@ const (
 )
 
 var (
-	errBadForm        = errors.New("failed to parse POST form data")
-	errNoNonce        = errors.New("could not find nonce in URL query parameters")
-	errBadNonceFormat = errors.New("unexpected nonce format; must be Base64 string")
+	errBadForm          = errors.New("failed to parse POST form data")
+	errNoNonce          = errors.New("could not find nonce in URL query parameters")
+	errBadNonceFormat   = errors.New("unexpected nonce format; must be Base64 string")
+	errDeadlineExceeded = errors.New("deadline exceeded")
 )
 
 // ExtractNonce extracts a nonce from the HTTP request's parameters, e.g.:
@@ -56,11 +59,11 @@ func ExtractNonce(r *http.Request) (n *nonce.Nonce, err error) {
 	return n, nil
 }
 
-// NewNoAuthHTTPClient returns an HTTP client that skips HTTPS certificate
+// NewUnauthClient returns an HTTP client that skips HTTPS certificate
 // validation.  In the context of veil, this is fine because all we need is a
 // confidential channel; not an authenticated channel.  Authentication is
 // handled by the next layer, using attestation documents.
-func NewNoAuthHTTPClient() *http.Client {
+func NewUnauthClient() *http.Client {
 	transport := &http.Transport{
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: true,
@@ -69,6 +72,42 @@ func NewNoAuthHTTPClient() *http.Client {
 	return &http.Client{
 		Transport: transport,
 		Timeout:   5 * time.Second,
+	}
+}
+
+// WaitForSvc waits for the service (specified by the URL) to become available
+// by making repeated HTTP GET requests using the given HTTP client.  This
+// function blocks until 1) the service responds with an HTTP response or 2) the
+// given context expires.
+func WaitForSvc(
+	ctx context.Context,
+	client *http.Client,
+	url string,
+) (err error) {
+	defer errs.Wrap(&err, "failed to wait for service")
+
+	start := time.Now()
+	deadline, ok := ctx.Deadline()
+	if !ok {
+		return errors.New("context has no deadline")
+	}
+
+	req, err := http.NewRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return err
+	}
+	req = req.WithContext(ctx)
+
+	for {
+		log.Print("Making request to service...")
+		if _, err := client.Do(req); err == nil {
+			log.Print("Service is ready.")
+			return nil
+		}
+		if time.Since(start) > deadline.Sub(start) {
+			return errDeadlineExceeded
+		}
+		time.Sleep(10 * time.Millisecond)
 	}
 }
 

@@ -15,7 +15,7 @@ import (
 	"github.com/Amnesic-Systems/veil/internal/config"
 	"github.com/Amnesic-Systems/veil/internal/enclave"
 	"github.com/Amnesic-Systems/veil/internal/errs"
-	"github.com/Amnesic-Systems/veil/internal/httputil"
+	"github.com/Amnesic-Systems/veil/internal/httpx"
 	"github.com/Amnesic-Systems/veil/internal/service/attestation"
 	"github.com/Amnesic-Systems/veil/internal/system"
 	"github.com/Amnesic-Systems/veil/internal/tunnel"
@@ -40,7 +40,7 @@ func Run(
 	}
 
 	// Create a TLS certificate for the external Web server.
-	cert, key, err := httputil.CreateCertificate(config.FQDN)
+	cert, key, err := httpx.CreateCertificate(config.FQDN)
 	if err != nil {
 		log.Fatalf("Failed to create certificate: %v", err)
 	}
@@ -136,6 +136,7 @@ func startAllWebSrvs(
 	// Wait until the context is canceled, at which point it's time to stop web
 	// servers.
 	<-ctx.Done()
+	log.Print("Context cancelled; shutting down veil.")
 	if err := intSrv.Shutdown(ctx); err != nil {
 		log.Printf("Error shutting down internal server: %v", err)
 	}

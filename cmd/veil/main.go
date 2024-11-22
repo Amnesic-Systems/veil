@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"errors"
 	"flag"
@@ -9,13 +10,17 @@ import (
 	"log"
 	"net/url"
 	"os"
+	"os/exec"
 	"os/signal"
+	"strings"
+	"time"
 
 	"github.com/Amnesic-Systems/veil/internal/config"
 	"github.com/Amnesic-Systems/veil/internal/enclave"
 	"github.com/Amnesic-Systems/veil/internal/enclave/nitro"
 	"github.com/Amnesic-Systems/veil/internal/enclave/noop"
 	"github.com/Amnesic-Systems/veil/internal/errs"
+	"github.com/Amnesic-Systems/veil/internal/httpx"
 	"github.com/Amnesic-Systems/veil/internal/service"
 	"github.com/Amnesic-Systems/veil/internal/tunnel"
 	"github.com/Amnesic-Systems/veil/internal/util"
@@ -30,6 +35,11 @@ func parseFlags(out io.Writer, args []string) (*config.Config, error) {
 	fs := flag.NewFlagSet("veil", flag.ContinueOnError)
 	fs.SetOutput(out)
 
+	appCmd := fs.String(
+		"app-cmd",
+		"",
+		"command to run to invoke application",
+	)
 	appWebSrv := fs.String(
 		"app-web-srv",
 		"localhost:8081",
@@ -83,6 +93,7 @@ func parseFlags(out io.Writer, args []string) (*config.Config, error) {
 
 	// Build and validate the config.
 	return &config.Config{
+		AppCmd:         *appCmd,
 		AppWebSrv:      util.Must(url.Parse(*appWebSrv)),
 		Debug:          *debug,
 		EnclaveCodeURI: *enclaveCodeURI,
@@ -120,6 +131,18 @@ func run(ctx context.Context, out io.Writer, args []string) (err error) {
 		return err
 	}
 
+	// Run the application command, if specified.
+	if cfg.AppCmd != "" {
+		go func() {
+			if err := eventuallyRunAppCmd(ctx, cfg, cfg.AppCmd); err != nil {
+				log.Printf("App unavailable: %v", err)
+			}
+			// Shut down the service if the app command has terminated,
+			// successfully or not.
+			cancel()
+		}()
+	}
+
 	// Initialize dependencies and start the service.
 	var attester enclave.Attester = nitro.NewAttester()
 	var tunneler tunnel.Mechanism = tunnel.NewVSOCK()
@@ -129,6 +152,58 @@ func run(ctx context.Context, out io.Writer, args []string) (err error) {
 	}
 	service.Run(ctx, cfg, attester, tunneler)
 	return nil
+}
+
+func eventuallyRunAppCmd(ctx context.Context, cfg *config.Config, cmd string) (err error) {
+	defer errs.Wrap(&err, "failed to run app command")
+
+	// Wait for the internal service to be ready.
+	deadlineCtx, cancel := context.WithDeadline(ctx, time.Now().Add(time.Second))
+	defer cancel()
+	url := fmt.Sprintf("http://localhost:%d", cfg.IntPort)
+	if err := httpx.WaitForSvc(deadlineCtx, httpx.NewUnauthClient(), url); err != nil {
+		return err
+	}
+	log.Print("Internal service ready; running app command.")
+
+	return runAppCmd(ctx, cmd)
+}
+
+func runAppCmd(ctx context.Context, cmdStr string) error {
+	args := strings.Split(cmdStr, " ")
+	cmd := exec.CommandContext(ctx, args[0], args[1:]...)
+
+	// Discard the enclave application's stdout and stderr.  Regardless, we have
+	// to consume its output to prevent the application from blocking.
+	appStderr, err := cmd.StderrPipe()
+	if err != nil {
+		return err
+	}
+	appStdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return err
+	}
+	go forward(appStderr, io.Discard)
+	go forward(appStdout, io.Discard)
+
+	// Start the application and wait for it to terminate.
+	log.Println("Starting application.")
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+	log.Println("Waiting for application to terminate.")
+	defer log.Println("Application terminated.")
+	return cmd.Wait()
+}
+
+func forward(from io.Reader, to io.Writer) {
+	s := bufio.NewScanner(from)
+	for s.Scan() {
+		fmt.Fprintln(to, s.Text())
+	}
+	if err := s.Err(); err != nil {
+		log.Printf("Error reading application output: %v", err)
+	}
 }
 
 func main() {
