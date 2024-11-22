@@ -101,7 +101,6 @@ func WaitForSvc(
 			return nil
 		}
 		if time.Since(start) > deadline.Sub(start) {
-			log.Printf("%v > %v", time.Since(start), deadline.Sub(start))
 			return errDeadlineExceeded
 		}
 		time.Sleep(10 * time.Millisecond)
