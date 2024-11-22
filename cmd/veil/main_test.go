@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/Amnesic-Systems/veil/internal/addr"
+	"github.com/Amnesic-Systems/veil/internal/config"
 	"github.com/Amnesic-Systems/veil/internal/enclave"
 	"github.com/Amnesic-Systems/veil/internal/enclave/nitro"
 	"github.com/Amnesic-Systems/veil/internal/enclave/noop"
@@ -40,14 +41,13 @@ func withFlags(flag ...string) []string {
 	return append(f, flag...)
 }
 
-func startSvc(t *testing.T, cfg []string) func() {
+func startSvc(t *testing.T, cfg []string) (
+	context.CancelFunc,
+	*sync.WaitGroup,
+) {
 	var (
-		ctx, cancelCtx = context.WithCancel(context.Background())
-		wg             = new(sync.WaitGroup)
-		f              = func() {
-			cancelCtx()
-			wg.Wait()
-		}
+		ctx, cancel = context.WithCancel(context.Background())
+		wg          = new(sync.WaitGroup)
 	)
 
 	wg.Add(1)
@@ -55,30 +55,34 @@ func startSvc(t *testing.T, cfg []string) func() {
 		defer wg.Done()
 		// run blocks until the context is cancelled.
 		assert.NoError(t, run(ctx, os.Stderr, cfg))
+		cancel()
 	}(ctx, wg)
 
 	// Block until the services are ready.
-	deadline, cancelFunc := context.WithDeadline(ctx, time.Now().Add(time.Second))
-	defer cancelFunc()
+	deadline, cancelDl := context.WithDeadline(ctx, time.Now().Add(time.Second))
+	defer cancelDl()
 	if err := httpx.WaitForSvc(deadline, httpx.NewUnauthClient(), intSrv("/")); err != nil {
 		t.Logf("error waiting for internal service: %v", err)
-		return f
+		return cancel, wg
 	}
 	if !slices.Contains(cfg, "-wait-for-app") {
-		deadline, cancelFunc := context.WithDeadline(ctx, time.Now().Add(time.Second))
-		defer cancelFunc()
+		deadline, cancelDl := context.WithDeadline(ctx, time.Now().Add(time.Second))
+		defer cancelDl()
 		if err := httpx.WaitForSvc(deadline, httpx.NewUnauthClient(), extSrv("/")); err != nil {
 			t.Logf("error waiting for external service: %v", err)
-			return f
+			return cancel, wg
 		}
 	}
-
-	// Return function that shuts down the service.
-	return f
+	return cancel, wg
 }
 
-func stopSvc(stop func()) {
-	stop()
+func waitForSvc(_ context.CancelFunc, wg *sync.WaitGroup) {
+	wg.Wait()
+}
+
+func stopSvc(cancel context.CancelFunc, wg *sync.WaitGroup) {
+	cancel()
+	wg.Wait()
 }
 
 func intSrv(path string) string {
@@ -402,6 +406,46 @@ func TestReverseProxy(t *testing.T) {
 			resp, err := testutil.Client.Get(extSrv(c.path))
 			require.NoError(t, err)
 			require.Equal(t, c.wantCode, resp.StatusCode)
+		})
+	}
+}
+
+func TestRunApp(t *testing.T) {
+	fd, err := os.CreateTemp("", "veil-test")
+	require.NoError(t, err)
+	defer os.Remove(fd.Name())
+
+	cases := []struct {
+		name    string
+		command string
+	}{
+		{
+			name: "curl",
+			// Run curl to fetch veil's configuration from its external Web
+			// server.
+			command: fmt.Sprintf("curl --silent --insecure --output %s "+
+				"https://localhost:%d/enclave/config?nonce=%s",
+				fd.Name(),
+				defaultExtPort,
+				util.Must(nonce.New()).URLEncode(),
+			),
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			waitForSvc(startSvc(t, withFlags("-app-cmd", c.command, "-insecure")))
+
+			// Read curl's output, which should be our JSON-encoded
+			// configuration file.
+			content, err := io.ReadAll(fd)
+			require.NoError(t, err)
+
+			// Decode the configuration file and verify that the application
+			// command is identical to what we just ran.
+			var cfg config.Config
+			require.NoError(t, json.Unmarshal(content, &cfg))
+			require.Equal(t, c.command, cfg.AppCmd)
 		})
 	}
 }
