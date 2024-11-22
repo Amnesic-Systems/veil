@@ -192,12 +192,8 @@ func runAppCmd(ctx context.Context, cmdStr string) error {
 		return err
 	}
 	log.Println("Waiting for application to terminate.")
-	if err := cmd.Wait(); err != nil {
-		return err
-	}
-	log.Println("Application terminated.")
-
-	return nil
+	defer log.Println("Application terminated.")
+	return cmd.Wait()
 }
 
 func forward(from io.Reader, to io.Writer) {
