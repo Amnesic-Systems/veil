@@ -132,7 +132,7 @@ func run(ctx context.Context, out io.Writer, args []string) (err error) {
 	if problems := cfg.Validate(ctx); len(problems) > 0 {
 		err := errors.New("invalid configuration")
 		for field, problem := range problems {
-			err = errors.Join(err, fmt.Errorf("field %q: %v", field, problem))
+			err = errors.Join(err, fmt.Errorf("field %s: %v", field, problem))
 		}
 		return err
 	}
