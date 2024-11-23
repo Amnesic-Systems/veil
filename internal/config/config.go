@@ -94,15 +94,15 @@ func (c *Config) Validate(_ context.Context) map[string]string {
 
 	// Check required fields.
 	if !isValidPort(c.ExtPort) {
-		problems["ExtPort"] = "must be a valid port number"
+		problems["-ext-port"] = "must be a valid port number"
 	}
 	if !isValidPort(c.IntPort) {
-		problems["IntPort"] = "must be a valid port number"
+		problems["-int-port"] = "must be a valid port number"
 	}
 
 	// Check invalid field combinations.
 	if c.SilenceApp && c.AppCmd == "" {
-		problems["SilenceApp"] = "requires -app-cmd to be set"
+		problems["-silence-app"] = "requires -app-cmd to be set"
 	}
 
 	return problems
