@@ -66,6 +66,10 @@ type Config struct {
 	// should use, e.g., 1.1.1.1.
 	Resolver string
 
+	// SilenceApp can be set to discard the application's stdout and stderr if
+	// -app-cmd is used.
+	SilenceApp bool
+
 	// Testing facilitates local testing by disabling safety checks that we
 	// would normally run on the enclave and by using the noop attester instead
 	// of the real attester.
@@ -94,6 +98,11 @@ func (c *Config) Validate(_ context.Context) map[string]string {
 	}
 	if !isValidPort(c.IntPort) {
 		problems["IntPort"] = "must be a valid port number"
+	}
+
+	// Check invalid field combinations.
+	if c.SilenceApp && c.AppCmd == "" {
+		problems["SilenceApp"] = "requires -app-cmd to be set"
 	}
 
 	return problems
