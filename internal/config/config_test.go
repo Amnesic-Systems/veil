@@ -27,6 +27,24 @@ func TestConfig(t *testing.T) {
 			cfg:      &Config{ExtPort: 0, IntPort: 65536},
 			wantErrs: 2,
 		},
+		{
+			name: "invalid flag combination",
+			cfg: &Config{
+				SilenceApp: true,
+				ExtPort:    8443,
+				IntPort:    8080,
+			},
+			wantErrs: 1,
+		},
+		{
+			name: "valid flag combination",
+			cfg: &Config{
+				SilenceApp: true,
+				AppCmd:     "echo",
+				ExtPort:    8443,
+				IntPort:    8080,
+			},
+		},
 	}
 
 	for _, c := range cases {

@@ -75,6 +75,11 @@ func parseFlags(out io.Writer, args []string) (*config.Config, error) {
 		"1.1.1.1",
 		"the DNS resolver used by veil",
 	)
+	silenceApp := fs.Bool(
+		"silence-app",
+		false,
+		"discard the application's stdout and stderr if -app-cmd is used",
+	)
 	testing := fs.Bool(
 		"insecure",
 		false,
@@ -101,6 +106,7 @@ func parseFlags(out io.Writer, args []string) (*config.Config, error) {
 		FQDN:           *fqdn,
 		IntPort:        *intPort,
 		Resolver:       *resolver,
+		SilenceApp:     *silenceApp,
 		Testing:        *testing,
 		WaitForApp:     *waitForApp,
 	}, nil
@@ -126,7 +132,7 @@ func run(ctx context.Context, out io.Writer, args []string) (err error) {
 	if problems := cfg.Validate(ctx); len(problems) > 0 {
 		err := errors.New("invalid configuration")
 		for field, problem := range problems {
-			err = errors.Join(err, fmt.Errorf("field %q: %v", field, problem))
+			err = errors.Join(err, fmt.Errorf("field %s: %v", field, problem))
 		}
 		return err
 	}
@@ -166,10 +172,10 @@ func eventuallyRunAppCmd(ctx context.Context, cfg *config.Config, cmd string) (e
 	}
 	log.Print("Internal service ready; running app command.")
 
-	return runAppCmd(ctx, cmd)
+	return runAppCmd(ctx, cmd, cfg.SilenceApp)
 }
 
-func runAppCmd(ctx context.Context, cmdStr string) error {
+func runAppCmd(ctx context.Context, cmdStr string, silence bool) error {
 	args := strings.Split(cmdStr, " ")
 	cmd := exec.CommandContext(ctx, args[0], args[1:]...)
 
@@ -183,8 +189,12 @@ func runAppCmd(ctx context.Context, cmdStr string) error {
 	if err != nil {
 		return err
 	}
-	go forward(appStderr, io.Discard)
-	go forward(appStdout, io.Discard)
+	var out io.Writer = os.Stdout
+	if silence {
+		out = io.Discard
+	}
+	go forward(appStderr, out)
+	go forward(appStdout, out)
 
 	// Start the application and wait for it to terminate.
 	log.Println("Starting application.")
