@@ -40,11 +40,23 @@ $(image_eif): $(image_tar)
 		--docker-uri $(image_tag) \
 		--output-file $(image_eif)
 
-.PHONY: enclave-test
-enclave-test: $(godeps) $(image_eif)
-	@echo "Running enclave tests..."
+.PHONY: terminate
+terminate:
 	@nitro-cli terminate-enclave \
 		--all
+
+.PHONY: enclave
+enclave: $(godeps) $(image_eif) $(terminate)
+	@echo "Running enclave..."
+	@nitro-cli run-enclave \
+		--enclave-name veil \
+		--eif-path $(image_eif) \
+		--cpu-count 2 \
+		--memory 3500
+
+.PHONY: enclave-test
+enclave-test: $(godeps) $(image_eif) $(terminate)
+	@echo "Running enclave tests..."
 	@nitro-cli run-enclave \
 		--enclave-name veil-unit-tests \
 		--eif-path $(image_eif) \
