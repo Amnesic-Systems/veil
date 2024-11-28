@@ -22,3 +22,7 @@ func WrapErr(err *error, new error) {
 		*err = fmt.Errorf("%w: %w", new, *err)
 	}
 }
+
+func Add(err error, str string, args ...any) error {
+	return fmt.Errorf("%s: %w", fmt.Sprintf(str, args...), err)
+}

@@ -19,3 +19,10 @@ func TestWrapErr(t *testing.T) {
 	require.ErrorIs(t, wrapped, wrapper)
 	require.Equal(t, "foo: bar", wrapped.Error())
 }
+
+func TestAdd(t *testing.T) {
+	bar := errors.New("bar")
+	err := Add(bar, "foo")
+	require.Equal(t, "foo: bar", err.Error())
+	require.ErrorIs(t, err, bar)
+}
