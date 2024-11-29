@@ -24,5 +24,8 @@ func WrapErr(err *error, new error) {
 }
 
 func Add(err error, str string, args ...any) error {
+	if err == nil {
+		return nil
+	}
 	return fmt.Errorf("%s: %w", fmt.Sprintf(str, args...), err)
 }

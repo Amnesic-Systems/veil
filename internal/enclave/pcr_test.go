@@ -122,6 +122,16 @@ func TestPCRsEqual(t *testing.T) {
 			},
 			want: false,
 		},
+		{
+			name: "one PCR missing",
+			pcr1: PCR{},
+			pcr2: PCR{
+				0: []byte("foo"),
+				1: []byte("bar"),
+				2: []byte("baz"),
+			},
+			want: false,
+		},
 	}
 
 	for _, c := range cases {

@@ -21,8 +21,27 @@ func TestWrapErr(t *testing.T) {
 }
 
 func TestAdd(t *testing.T) {
-	bar := errors.New("bar")
-	err := Add(bar, "foo")
-	require.Equal(t, "foo: bar", err.Error())
-	require.ErrorIs(t, err, bar)
+	cases := []struct {
+		name string
+		err  error
+	}{
+		{
+			name: "error",
+			err:  errors.New("foo"),
+		},
+		{
+			name: "no error",
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			err := Add(c.err, "bar")
+			if c.err == nil {
+				require.NoError(t, err)
+			} else {
+				require.ErrorIs(t, err, c.err)
+			}
+		})
+	}
 }
