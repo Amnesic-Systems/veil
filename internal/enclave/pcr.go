@@ -32,13 +32,17 @@ func (p PCR) String() string {
 
 // Equal returns true if (and only if) the two given PCR maps are identical.
 func (ours PCR) Equal(theirs PCR) bool {
+	// PCR4 contains a hash over the parent's instance ID, which is known at
+	// runtime.  We ignore it for now, until we have a better solution for how
+	// to handle this.
+	delete(ours, 4)
+	delete(theirs, 4)
+
+	if len(ours) != len(theirs) {
+		return false
+	}
+
 	for i, ourValue := range ours {
-		// PCR4 contains a hash over the parent's instance ID, which is known at
-		// runtime.  We ignore it for now, until we have a better solution on
-		// how to handle this.
-		if i == 4 {
-			continue
-		}
 		theirValue, exists := theirs[i]
 		if !exists {
 			return false
