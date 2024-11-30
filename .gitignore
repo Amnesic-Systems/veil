@@ -1,6 +1,7 @@
 .vscode
 cmd/veil/veil
+cmd/veil-verify/veil-verify
 cover.html
 cover.out
-veil.tar
-veil.eif
+*.tar
+*.eif
