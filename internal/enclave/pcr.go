@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"crypto/sha512"
 	"fmt"
+	"sort"
+	"strings"
 )
 
 var emptyPCR = make([]byte, sha512.Size384)
@@ -23,11 +25,12 @@ func (p PCR) FromDebugMode() bool {
 
 // String returns a human-readable representation of the PCR map.
 func (p PCR) String() string {
-	s := ""
+	s := []string{}
 	for key, val := range p {
-		s += fmt.Sprintf("%d: %x\n", key, val)
+		s = append(s, fmt.Sprintf("%d: %x\n", key, val))
 	}
-	return s
+	sort.Strings(s)
+	return strings.Join(s, "")
 }
 
 // Equal returns true if (and only if) the two given PCR maps are identical.
