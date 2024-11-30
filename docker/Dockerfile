@@ -10,7 +10,6 @@ COPY Makefile go.mod go.sum ./
 
 RUN go mod download
 RUN make
-RUN sha1sum cmd/veil/veil
 
 FROM scratch
 

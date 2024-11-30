@@ -81,7 +81,7 @@ $(prog): $(godeps)
 		-ldflags="-s -w" \
 		-buildvcs=false \
 		-o $(prog)
-	@echo "$(prog_dir)/$(prog)"
+	@sha1sum "$(prog_dir)/$(prog)"
 
 .PHONY: clean
 clean:
