@@ -83,11 +83,11 @@ $(prog): $(godeps)
 		-ldflags="-s -w" \
 		-buildvcs=false \
 		-o $(prog)
-	@sha1sum "$(prog_dir)/$(prog)"
+	@-sha1sum "$(prog_dir)/$(prog)"
 
 $(verify_prog): $(godeps)
 	@go build -C $(verify_prog_dir) -o $(verify_prog)
-	@sha1sum "$(verify_prog_dir)/$(verify_prog)"
+	@-sha1sum "$(verify_prog_dir)/$(verify_prog)"
 
 .PHONY: clean
 clean:
