@@ -1,5 +1,7 @@
 prog = veil
 prog_dir = cmd/veil
+verify_prog = veil-verify
+verify_prog_dir = cmd/veil-verify
 godeps = go.mod go.sum $(shell find cmd internal -name "*.go" -type f)
 
 image_tag := $(prog)
@@ -83,8 +85,13 @@ $(prog): $(godeps)
 		-o $(prog)
 	@sha1sum "$(prog_dir)/$(prog)"
 
+$(verify_prog): $(godeps)
+	@go build -C $(verify_prog_dir) -o $(verify_prog)
+	@sha1sum "$(verify_prog_dir)/$(verify_prog)"
+
 .PHONY: clean
 clean:
 	rm -f $(prog_dir)/$(prog)
+	rm -f $(verify_prog_dir)/$(verify_prog)
 	rm -f $(cover_out) $(cover_html)
 	rm -f $(image_tar) $(image_eif)
