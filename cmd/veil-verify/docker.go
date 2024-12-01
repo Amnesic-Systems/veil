@@ -5,7 +5,6 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -22,7 +21,9 @@ import (
 	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/client"
+	"github.com/docker/docker/pkg/jsonmessage"
 	"github.com/fatih/color"
+	"github.com/moby/term"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
@@ -57,6 +58,7 @@ func buildEnclaveImage(
 	ctx context.Context,
 	cli *client.Client,
 	cfg *config,
+	out io.Writer,
 ) (err error) {
 	defer errs.Wrap(&err, "failed to build enclave image")
 
@@ -66,10 +68,8 @@ func buildEnclaveImage(
 	if err != nil {
 		return errs.Add(err, "failed to pull image")
 	}
-	defer output.Close()
-	if cfg.verbose {
-		printJSON(output)
-	}
+	defer close(output)
+	printDockerLogs(output, out)
 	log.Print("Pulled kaniko builder image.")
 
 	// Configure kaniko.  We want a reproducible build for linux/amd64 because
@@ -81,6 +81,7 @@ func buildEnclaveImage(
 			"--dockerfile", cfg.dockerfile,
 			"--reproducible",
 			"--no-push",
+			"--log-format", "text",
 			"--verbosity", "warn",
 			"--tarPath", enclaveTarImage,
 			"--destination", "enclave",
@@ -121,51 +122,21 @@ func buildEnclaveImage(
 	log.Print("Started builder container.")
 
 	// If we need verbose logs, request and print the container's logs.
-	if cfg.verbose {
-		options := container.LogsOptions{
-			ShowStdout: true,
-			ShowStderr: true,
-			Follow:     true,
-		}
-		reader, err := cli.ContainerLogs(ctx, resp.ID, options)
-		if err != nil {
-			return errs.Add(err, "failed to get container logs")
-		}
-		defer reader.Close()
-		go printPlain(reader)
+	options := container.LogsOptions{
+		ShowStdout: true,
+		ShowStderr: true,
+		Follow:     true,
 	}
-
-	// Wait until the container is no longer running.
-	log.Print("Waiting for builder container to build enclave image.")
-	if err := waitForContainer(ctx, cli, resp.ID); err != nil {
-		return err
+	reader, err := cli.ContainerLogs(ctx, resp.ID, options)
+	if err != nil {
+		return errs.Add(err, "failed to get container logs")
 	}
+	defer close(reader)
+	printLogs(reader, out)
 
 	// Check the container's exit code and return an error if the exit code is
 	// non-zero.
 	return getContainerExitCode(ctx, cli, resp.ID)
-}
-
-func waitForContainer(
-	ctx context.Context,
-	cli *client.Client,
-	containerID string,
-) (err error) {
-	// Wait for the container to stop running.
-	waitCh, errCh := cli.ContainerWait(
-		ctx,
-		containerID,
-		container.WaitConditionNotRunning,
-	)
-
-	select {
-	case err := <-errCh:
-		return errs.Add(err, "failed to wait for container")
-	case <-waitCh:
-		return nil
-	case <-ctx.Done():
-		return nil
-	}
 }
 
 func getContainerExitCode(
@@ -194,6 +165,7 @@ func loadEnclaveImage(
 	ctx context.Context,
 	cli *client.Client,
 	cfg *config,
+	verbose io.Writer,
 ) (err error) {
 	defer errs.Wrap(&err, "failed to load enclave image")
 
@@ -211,18 +183,15 @@ func loadEnclaveImage(
 	if err != nil {
 		return errs.Add(err, "failed to load image")
 	}
-	defer func() { err = reader.Body.Close() }()
+	defer close(reader.Body)
 
-	if cfg.verbose {
-		printJSON(reader.Body)
-	}
-	return nil
+	return printDockerLogs(reader.Body, verbose)
 }
 
 func buildCompilerImage(
 	ctx context.Context,
 	cli *client.Client,
-	verbose bool,
+	verbose io.Writer,
 ) (err error) {
 	defer errs.Wrap(&err, "failed to build compiler image")
 
@@ -266,12 +235,9 @@ CMD ["bash", "-c", "nitro-cli build-enclave --docker-uri enclave:latest --output
 	if err != nil {
 		return errs.Add(err, "failed to build compiler image")
 	}
-	defer func() { err = resp.Body.Close() }()
+	defer close(resp.Body)
 
-	if verbose {
-		printJSON(resp.Body)
-	}
-	return nil
+	return printDockerLogs(resp.Body, verbose)
 }
 
 func compileEnclaveImage(
@@ -344,7 +310,7 @@ func parsePCRsFromLogs(
 	if err != nil {
 		return nil, errs.Add(err, "failed to get container logs")
 	}
-	defer func() { err = reader.Close() }()
+	defer close(reader)
 
 	// Fetch the container's stdout and decode the JSON into our PCR values.
 	buf := bytes.NewBufferString("")
@@ -361,38 +327,34 @@ func parsePCRsFromLogs(
 	return pcr, errs.Add(err, "failed to parse PCR values")
 }
 
-func printJSON(from io.Reader) {
-	type msg struct {
-		Stream string `json:"stream"`
-		Status string `json:"status"`
+func printLogs(from io.Reader, to io.Writer) {
+	scanner := bufio.NewScanner(from)
+	for scanner.Scan() {
+		fmt.Fprintln(to, color.CyanString(scanner.Text()))
 	}
-
-	decoder := json.NewDecoder(from)
-	for {
-		var m msg
-		if err := decoder.Decode(&m); err != nil {
-			if err == io.EOF {
-				break
-			}
-			log.Printf("Error decoding JSON: %v", err)
-			log.Print()
-			break
-		}
-		if m.Stream != "" {
-			color.Cyan(m.Stream)
-		}
-		if m.Status != "" {
-			color.Cyan(m.Status)
-		}
+	if err := scanner.Err(); err != nil {
+		fmt.Fprintln(to, err.Error())
 	}
 }
 
-func printPlain(from io.Reader) {
-	scanner := bufio.NewScanner(from)
-	for scanner.Scan() {
-		color.Cyan(scanner.Text())
+func printDockerLogs(from io.Reader, to io.Writer) error {
+	// Instead of writing Docker's logs directly to 'out', we shove them into
+	// printLogs, which prints them in color.  That makes Docker's logs easier
+	// to tell apart from our own logs.
+	r, w := io.Pipe()
+	go printLogs(r, to)
+
+	termFd, isTerm := term.GetFdInfo(os.Stderr)
+	if err := jsonmessage.DisplayJSONMessagesStream(
+		from, w, termFd, isTerm, nil,
+	); err != nil {
+		return errs.Add(err, "error in Docker logs")
 	}
-	if err := scanner.Err(); err != nil {
-		log.Print(err.Error())
+	return nil
+}
+
+func close(reader io.Closer) {
+	if err := reader.Close(); err != nil {
+		log.Printf("Failed to close reader: %v", err)
 	}
 }

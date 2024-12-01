@@ -93,6 +93,12 @@ func run(ctx context.Context, out io.Writer, args []string) error {
 		return err
 	}
 
+	// By default, we discard Docker's logs but we print them in verbose mode.
+	writer := io.Discard
+	if cfg.verbose {
+		writer = log.Writer()
+	}
+
 	// Create a new Docker client to interact with the Docker daemon.
 	cli, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
@@ -105,16 +111,16 @@ func run(ctx context.Context, out io.Writer, args []string) error {
 
 	// Create a deterministically-built enclave image.  The image is written to
 	// disk as a tar archive.
-	if err := buildEnclaveImage(ctx, cli, cfg); err != nil {
+	if err := buildEnclaveImage(ctx, cli, cfg, writer); err != nil {
 		return err
 	}
 	// Load the tar archive into Docker as an image.
-	if err := loadEnclaveImage(ctx, cli, cfg); err != nil {
+	if err := loadEnclaveImage(ctx, cli, cfg, writer); err != nil {
 		return err
 	}
 	// Create a container that compiles the previously created enclave image
 	// into AWS's EIF format, which is what we need for remote attestation.
-	if err := buildCompilerImage(ctx, cli, cfg.verbose); err != nil {
+	if err := buildCompilerImage(ctx, cli, writer); err != nil {
 		return err
 	}
 	// Compile the enclave image as discussed above.
