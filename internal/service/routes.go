@@ -10,6 +10,16 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 )
 
+// Veil's URL paths.
+const (
+	PathIndex       = "/veil"
+	PathConfig      = "/veil/config"
+	PathAttestation = "/veil/attestation"
+	PathReady       = "/veil/ready"
+	PathHashes      = "/veil/hashes"
+	PathHash        = "/veil/hash"
+)
+
 func setupMiddlewares(r *chi.Mux, config *config.Config) {
 	if config.Debug {
 		r.Use(middleware.Logger)
@@ -23,9 +33,9 @@ func addExternalPublicRoutes(
 ) {
 	setupMiddlewares(r, config)
 
-	r.Get("/enclave", handle.Index(config))
-	r.Get("/enclave/config", handle.Config(builder, config))
-	r.Get("/enclave/attestation", handle.Attestation(builder))
+	r.Get(PathIndex, handle.Index(config))
+	r.Get(PathConfig, handle.Config(builder, config))
+	r.Get(PathAttestation, handle.Attestation(builder))
 
 	// Set up reverse proxy for the application' Web server.
 	if config.AppWebSrv != nil {
@@ -43,10 +53,10 @@ func addInternalRoutes(
 	setupMiddlewares(r, config)
 
 	if config.WaitForApp {
-		r.Get("/enclave/ready", handle.Ready(appReady))
+		r.Get(PathReady, handle.Ready(appReady))
 	} else {
 		close(appReady)
 	}
-	r.Get("/enclave/hashes", handle.Hashes(hashes))
-	r.Post("/enclave/hash", handle.AppHash(hashes.SetAppHash))
+	r.Get(PathHashes, handle.Hashes(hashes))
+	r.Post(PathHash, handle.AppHash(hashes.SetAppHash))
 }
