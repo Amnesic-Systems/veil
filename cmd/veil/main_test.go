@@ -26,6 +26,7 @@ import (
 	"github.com/Amnesic-Systems/veil/internal/httperr"
 	"github.com/Amnesic-Systems/veil/internal/httpx"
 	"github.com/Amnesic-Systems/veil/internal/nonce"
+	"github.com/Amnesic-Systems/veil/internal/service"
 	"github.com/Amnesic-Systems/veil/internal/service/attestation"
 	"github.com/Amnesic-Systems/veil/internal/testutil"
 	"github.com/Amnesic-Systems/veil/internal/util"
@@ -136,12 +137,12 @@ func TestPages(t *testing.T) {
 	}{
 		{
 			name:     "index",
-			url:      extSrv("/enclave"),
+			url:      extSrv(service.PathIndex),
 			wantBody: "AWS Nitro Enclave",
 		},
 		{
 			name: "config",
-			url: extSrv("/enclave/config?nonce=" + url.QueryEscape(
+			url: extSrv(service.PathConfig + "?nonce=" + url.QueryEscape(
 				"hJkjpaP/6cVT+vikk06HcN0aOdU=",
 			)),
 			wantBody: `"Debug":false`,
@@ -166,7 +167,7 @@ func TestEnclaveCodeURI(t *testing.T) {
 	const codeURI = "https://example.com"
 	defer stopSvc(startSvc(t, withFlags("-enclave-code-uri", codeURI)))
 
-	resp, err := testutil.Client.Get(extSrv("/enclave"))
+	resp, err := testutil.Client.Get(extSrv(service.PathIndex))
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 	defer resp.Body.Close()
@@ -186,24 +187,24 @@ func TestReadyHandler(t *testing.T) {
 	}{
 		{
 			name:    "1st attempt public",
-			url:     extSrv("/enclave"),
+			url:     extSrv(service.PathIndex),
 			wantErr: syscall.ECONNREFUSED,
 		},
 		{
 			name:     "1st attempt ready",
-			url:      intSrv("/enclave/ready"),
+			url:      intSrv(service.PathReady),
 			wantCode: http.StatusOK,
 			wantErr:  nil,
 		},
 		{
 			name:     "2nd attempt ready",
-			url:      intSrv("/enclave/ready"),
+			url:      intSrv(service.PathReady),
 			wantCode: http.StatusGone,
 			wantErr:  nil,
 		},
 		{
 			name:     "2nd attempt public",
-			url:      extSrv("/enclave"),
+			url:      extSrv(service.PathIndex),
 			wantCode: http.StatusOK,
 			wantErr:  nil,
 		},
@@ -238,12 +239,12 @@ func TestAttestation(t *testing.T) {
 	}{
 		{
 			name:     "missing nonce",
-			url:      extSrv("/enclave/attestation"),
+			url:      extSrv(service.PathAttestation),
 			wantCode: http.StatusBadRequest,
 		},
 		{
 			name:     "valid attestation request",
-			url:      extSrv("/enclave/attestation"),
+			url:      extSrv(service.PathAttestation),
 			nonce:    util.Must(nonce.New()),
 			wantCode: http.StatusOK,
 		},
@@ -291,13 +292,13 @@ func TestHashes(t *testing.T) {
 		hashes = new(attestation.Hashes)
 		doPost = func(body io.Reader) (*http.Response, error) {
 			return testutil.Client.Post(
-				intSrv("/enclave/hash"),
+				intSrv(service.PathHash),
 				"application/json",
 				body,
 			)
 		}
 		doGet = func(_ io.Reader) (*http.Response, error) {
-			return testutil.Client.Get(intSrv("/enclave/hashes"))
+			return testutil.Client.Get(intSrv(service.PathHashes))
 		}
 	)
 	hashes.SetAppHash(addr.Of(sha256.Sum256([]byte("foo"))))
@@ -391,12 +392,12 @@ func TestReverseProxy(t *testing.T) {
 		},
 		{
 			name:     "also not for reverse proxy",
-			path:     "/enclave",
+			path:     service.PathIndex,
 			wantCode: http.StatusOK,
 		},
 		{
 			name:     "definitely not for reverse proxy",
-			path:     "/enclave/attestation",
+			path:     service.PathAttestation,
 			wantCode: http.StatusBadRequest,
 		},
 	}
@@ -424,7 +425,7 @@ func TestRunApp(t *testing.T) {
 			// Run curl to fetch veil's configuration from its external Web
 			// server.
 			command: fmt.Sprintf("curl --silent --insecure --output %s "+
-				"https://localhost:%d/enclave/config?nonce=%s",
+				"https://localhost:%d"+service.PathConfig+"?nonce=%s",
 				fd.Name(),
 				defaultExtPort,
 				util.Must(nonce.New()).URLEncode(),

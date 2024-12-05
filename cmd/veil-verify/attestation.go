@@ -21,6 +21,7 @@ import (
 	"github.com/Amnesic-Systems/veil/internal/errs"
 	"github.com/Amnesic-Systems/veil/internal/httpx"
 	"github.com/Amnesic-Systems/veil/internal/nonce"
+	"github.com/Amnesic-Systems/veil/internal/service"
 	"github.com/Amnesic-Systems/veil/internal/util"
 )
 
@@ -46,7 +47,7 @@ func attestEnclave(
 	// certificates because authentication is happening via the attestation
 	// document.
 	client := httpx.NewUnauthClient()
-	url := cfg.addr + "/enclave/attestation?nonce=" + nonce.URLEncode()
+	url := cfg.addr + service.PathAttestation + "?nonce=" + nonce.URLEncode()
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return err
