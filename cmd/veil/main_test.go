@@ -10,7 +10,6 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"os"
 	"slices"
 	"sync"
@@ -141,10 +140,15 @@ func TestPages(t *testing.T) {
 			wantBody: "AWS Nitro Enclave",
 		},
 		{
-			name: "config",
-			url: extSrv(service.PathConfig + "?nonce=" + url.QueryEscape(
-				"hJkjpaP/6cVT+vikk06HcN0aOdU=",
-			)),
+			name:     "config without nonce",
+			url:      extSrv(service.PathConfig),
+			wantBody: `"Debug":false`,
+		},
+		{
+			name: "config with nonce",
+			url: extSrv(service.PathConfig + "?nonce=" +
+				util.Must(nonce.New()).URLEncode(),
+			),
 			wantBody: `"Debug":false`,
 		},
 	}
