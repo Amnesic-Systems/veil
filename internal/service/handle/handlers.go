@@ -35,7 +35,7 @@ func Config(
 	cfg *config.Config,
 ) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		encodeAndAttest(w, r, http.StatusOK, builder, cfg)
+		encodeAndMaybeAttest(w, r, http.StatusOK, builder, cfg)
 	}
 }
 

@@ -23,6 +23,23 @@ func encode[T any](w http.ResponseWriter, status int, v T) {
 	}
 }
 
+func encodeAndMaybeAttest[T any](
+	w http.ResponseWriter,
+	r *http.Request,
+	status int,
+	builder *attestation.Builder,
+	v T,
+) {
+	// Depending on if the request contains a nonce, either return the JSON
+	// response without attestation or include an attestation document in the
+	// response.
+	if _, err := httpx.ExtractNonce(r); err != nil {
+		encode(w, status, v)
+	} else {
+		encodeAndAttest(w, r, status, builder, v)
+	}
+}
+
 func encodeAndAttest[T any](
 	w http.ResponseWriter,
 	r *http.Request,
