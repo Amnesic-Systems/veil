@@ -4,11 +4,9 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 
 	"github.com/Amnesic-Systems/veil/internal/httperr"
-	"github.com/Amnesic-Systems/veil/internal/httpx"
 	"github.com/Amnesic-Systems/veil/internal/service/attestation"
 )
 
@@ -23,37 +21,17 @@ func encode[T any](w http.ResponseWriter, status int, v T) {
 	}
 }
 
-func encodeAndMaybeAttest[T any](
-	w http.ResponseWriter,
-	r *http.Request,
-	status int,
-	builder *attestation.Builder,
-	v T,
-) {
-	// Depending on if the request contains a nonce, either return the JSON
-	// response without attestation or include an attestation document in the
-	// response.
-	if _, err := httpx.ExtractNonce(r); err != nil {
-		encode(w, status, v)
-	} else {
-		encodeAndAttest(w, r, status, builder, v)
-	}
-}
-
 func encodeAndAttest[T any](
 	w http.ResponseWriter,
-	r *http.Request,
 	status int,
 	builder *attestation.Builder,
 	v T,
 ) {
-	// Try to extract the client's nonce from the request. If this fails, abort
-	// attestation because the client no longer has a way to verify the
-	// attestation document's freshness.
-	n, err := httpx.ExtractNonce(r)
-	if err != nil {
-		log.Println(err)
-		encode(w, http.StatusBadRequest, httperr.New("found no valid nonce in HTTP request"))
+	// It's a bug if the caller didn't set a nonce in the builder.  Attestation
+	// documents can be replayed if they're not tied to a nonce, so it's best to
+	// return an error.
+	if builder.Nonce == nil {
+		encode(w, http.StatusInternalServerError, httperr.New("caller didn't set nonce"))
 		return
 	}
 
@@ -67,7 +45,6 @@ func encodeAndAttest[T any](
 	// hash and the client's nonce.
 	hash := sha256.Sum256(body)
 	attestation, err := builder.Attest(
-		attestation.WithNonce(n),
 		attestation.WithSHA256(hash),
 	)
 	if err != nil {
