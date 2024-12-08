@@ -35,7 +35,16 @@ func Config(
 	cfg *config.Config,
 ) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		encodeAndMaybeAttest(w, r, http.StatusOK, builder, cfg)
+		// If the client provided a nonce, we will add an attestation document
+		// to the response header.  Otherwise there's no need to be pedantic
+		// because this isn't a security-sensitive endpoint, so we simply return
+		// the configuration without attestation.
+		if n, err := httpx.ExtractNonce(r); err == nil {
+			builder.Update(attestation.WithNonce(n))
+			encodeAndAttest(w, http.StatusOK, builder, cfg)
+		} else {
+			encode(w, http.StatusOK, cfg)
+		}
 	}
 }
 
