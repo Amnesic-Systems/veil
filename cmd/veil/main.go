@@ -92,7 +92,6 @@ func parseFlags(out io.Writer, args []string) (*config.Config, error) {
 
 	var err error
 	if err = fs.Parse(args); err != nil {
-		fs.PrintDefaults()
 		return nil, fmt.Errorf("failed to parse flags: %w", err)
 	}
 
