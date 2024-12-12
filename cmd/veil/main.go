@@ -55,9 +55,9 @@ func parseFlags(out io.Writer, args []string) (*config.Config, error) {
 		"the enclave application's source code",
 	)
 	extPort := fs.Int(
-		"ext-pub-port",
+		"ext-port",
 		defaultExtPort,
-		"external public port",
+		"external port",
 	)
 	fqdn := fs.String(
 		"fqdn",
