@@ -111,10 +111,29 @@ func errFromBody(t *testing.T, resp *http.Response) string {
 }
 
 func TestBadConfig(t *testing.T) {
-	require.Error(t, run(context.Background(), io.Discard, []string{
-		// Provide an invalid port, which should cause the service to fail.
-		"-ext-pub-port", "foo",
-	}))
+	cases := []struct {
+		name string
+		args []string
+	}{
+		{
+			name: "bad external port",
+			args: []string{"-ext-port", "foo"},
+		},
+		{
+			name: "bad internal port",
+			args: []string{"-int-port", "65536"},
+		},
+		{
+			name: "bad application url",
+			args: []string{"-app-web-srv", "http://localhost:foo"},
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			require.Error(t, run(context.Background(), io.Discard, c.args))
+		})
+	}
 }
 
 func TestHelp(t *testing.T) {

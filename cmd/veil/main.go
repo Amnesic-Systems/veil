@@ -23,7 +23,6 @@ import (
 	"github.com/Amnesic-Systems/veil/internal/httpx"
 	"github.com/Amnesic-Systems/veil/internal/service"
 	"github.com/Amnesic-Systems/veil/internal/tunnel"
-	"github.com/Amnesic-Systems/veil/internal/util"
 )
 
 const (
@@ -42,8 +41,8 @@ func parseFlags(out io.Writer, args []string) (*config.Config, error) {
 	)
 	appWebSrv := fs.String(
 		"app-web-srv",
-		"localhost:8081",
-		"application web server",
+		"",
+		"application web server, e.g. http://localhost:8081",
 	)
 	debug := fs.Bool(
 		"debug",
@@ -56,9 +55,9 @@ func parseFlags(out io.Writer, args []string) (*config.Config, error) {
 		"the enclave application's source code",
 	)
 	extPort := fs.Int(
-		"ext-pub-port",
+		"ext-port",
 		defaultExtPort,
-		"external public port",
+		"external port",
 	)
 	fqdn := fs.String(
 		"fqdn",
@@ -91,15 +90,24 @@ func parseFlags(out io.Writer, args []string) (*config.Config, error) {
 		"wait for the application to signal readiness",
 	)
 
-	if err := fs.Parse(args); err != nil {
+	var err error
+	if err = fs.Parse(args); err != nil {
 		fs.PrintDefaults()
 		return nil, fmt.Errorf("failed to parse flags: %w", err)
+	}
+
+	var u *url.URL
+	if *appWebSrv != "" {
+		u, err = url.Parse(*appWebSrv)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse -app-web-srv: %w", err)
+		}
 	}
 
 	// Build and validate the config.
 	return &config.Config{
 		AppCmd:         *appCmd,
-		AppWebSrv:      util.Must(url.Parse(*appWebSrv)),
+		AppWebSrv:      u,
 		Debug:          *debug,
 		EnclaveCodeURI: *enclaveCodeURI,
 		ExtPort:        *extPort,
