@@ -15,4 +15,4 @@ FROM scratch
 
 COPY --from=builder /app/cmd/veil/veil /
 
-CMD ["/veil"]
+CMD ["/veil", "-enclave-code-uri", "https://github.com/Amnesic-Systems/veil"]
