@@ -24,9 +24,11 @@ type Nonce [Len]byte
 
 // URLEncode returns the nonce as a URL-encoded string.
 func (n *Nonce) URLEncode() string {
-	return url.QueryEscape(
-		base64.StdEncoding.EncodeToString(n[:]),
-	)
+	return url.QueryEscape(n.B64())
+}
+
+func (n *Nonce) B64() string {
+	return base64.StdEncoding.EncodeToString(n[:])
 }
 
 func (n *Nonce) ToSlice() []byte {

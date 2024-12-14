@@ -23,6 +23,7 @@ import (
 const (
 	certOrg      = "Amnesic Systems"
 	certValidity = time.Hour * 24 * 365 // One year.
+	ParamNonce   = "nonce"
 )
 
 var (
@@ -41,7 +42,7 @@ func ExtractNonce(r *http.Request) (n *nonce.Nonce, err error) {
 		return nil, errBadForm
 	}
 
-	strNonce := r.URL.Query().Get("nonce")
+	strNonce := r.URL.Query().Get(ParamNonce)
 	if strNonce == "" {
 		return nil, errNoNonce
 	}
