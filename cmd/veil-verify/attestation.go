@@ -11,6 +11,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/fatih/color"
@@ -43,29 +44,29 @@ func attestEnclave(
 		return err
 	}
 
+	req, err := buildReq(ctx, cfg.addr, nonce)
+	if err != nil {
+		return err
+	}
 	// Request the enclave's attestation document.  We don't verify HTTPS
 	// certificates because authentication is happening via the attestation
 	// document.
 	client := httpx.NewUnauthClient()
-	url := cfg.addr + service.PathAttestation + "?nonce=" + nonce.URLEncode()
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-	if err != nil {
-		return err
-	}
 	resp, err := client.Do(req)
 	if err != nil {
 		return err
 	}
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("got status %d from enclave", resp.StatusCode)
-	}
-
-	// Parse the attestation document.
+	// Read the response body first, so we can log it in case of an error.
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return err
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("enclave returned %q with body: %s", resp.Status, string(body))
+	}
+
+	// Parse the attestation document.
 	var rawDoc enclave.RawDocument
 	if err := json.Unmarshal(body, &rawDoc); err != nil {
 		return err
@@ -103,6 +104,31 @@ func attestEnclave(
 	}
 
 	return nil
+}
+
+func buildReq(
+	ctx context.Context,
+	addr string,
+	nonce *nonce.Nonce,
+) (_ *http.Request, err error) {
+	defer errs.Wrap(&err, "failed to build request")
+
+	// Compile the request URL.  The given address should be of the form:
+	// https://example.com
+	u, err := url.Parse(addr)
+	if err != nil {
+		return nil, err
+	}
+	u.Path = service.PathAttestation
+	query := u.Query()
+	query.Set(httpx.ParamNonce, nonce.B64())
+	u.RawQuery = query.Encode()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+	return req, nil
 }
 
 func toPCR(jsonMsmts []byte) (_ enclave.PCR, err error) {
