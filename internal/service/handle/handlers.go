@@ -48,41 +48,8 @@ func Config(
 	}
 }
 
-// hashHandler returns an HTTP handler that allows the enclave application to
-// register a hash over a public key which is going to be included in
-// attestation documents.  This allows clients to tie the attestation document
-// (which acts as the root of trust) to key material that's used by the enclave
-// application.
-//
-// This is an enclave-internal endpoint that can only be accessed by the
-// trusted enclave application.
-// func hashHandler(e *Enclave) http.HandlerFunc {
-// 	return func(w http.ResponseWriter, r *http.Request) {
-// 		// Allow an extra byte for the \n.
-// 		maxReadLen := base64.StdEncoding.EncodedLen(sha256.Size) + 1
-// 		body, err := io.ReadAll(newLimitReader(r.Body, maxReadLen))
-// 		if errors.Is(err, errTooMuchToRead) {
-// 			http.Error(w, errTooMuchToRead.Error(), http.StatusBadRequest)
-// 			return
-// 		}
-// 		if err != nil {
-// 			http.Error(w, errFailedReqBody.Error(), http.StatusInternalServerError)
-// 		}
-
-// 		keyHash, err := base64.StdEncoding.DecodeString(strings.TrimSpace(string(body)))
-// 		if err != nil {
-// 			http.Error(w, errNoBase64.Error(), http.StatusBadRequest)
-// 			return
-// 		}
-
-// 		if len(keyHash) != sha256.Size {
-// 			http.Error(w, errHashWrongSize.Error(), http.StatusBadRequest)
-// 			return
-// 		}
-// 		copy(e.hashes.appKeyHash[:], keyHash)
-// 	}
-// }
-
+// Hashes returns the attestation hashes that we embed in the attestation
+// document.
 func Hashes(hashes *attestation.Hashes) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		hashes.Lock()
@@ -91,6 +58,7 @@ func Hashes(hashes *attestation.Hashes) http.HandlerFunc {
 	}
 }
 
+// AppHash sets the application hash in the attestation document.
 func AppHash(
 	setAppHash func(*[sha256.Size]byte),
 ) http.HandlerFunc {
@@ -117,6 +85,7 @@ func AppHash(
 	}
 }
 
+// Ready closes the ready channel when the handler is invoked.
 func Ready(ready chan struct{}) http.HandlerFunc {
 	var (
 		m       sync.Mutex
@@ -137,6 +106,7 @@ func Ready(ready chan struct{}) http.HandlerFunc {
 	}
 }
 
+// Attestation returns an attestation document.
 func Attestation(
 	builder *attestation.Builder,
 ) http.HandlerFunc {
@@ -155,69 +125,3 @@ func Attestation(
 		encode(w, http.StatusOK, attestation)
 	}
 }
-
-// func heartbeatHandler(e *Enclave) http.HandlerFunc {
-// 	return func(w http.ResponseWriter, r *http.Request) {
-// 		var (
-// 			hb heartbeatRequest
-// 			// syncAndRegister = func(keys *enclaveKeys, worker *url.URL) {
-// 			// 	if err := asLeader(keys, e.attester).syncWith(worker); err == nil {
-// 			// 		e.workers.register(worker)
-// 			// 	}
-// 			// }
-// 		)
-
-// 		body, err := io.ReadAll(newLimitReader(r.Body, maxHeartbeatBody))
-// 		if err != nil {
-// 			http.Error(w, errFailedReqBody.Error(), http.StatusInternalServerError)
-// 			return
-// 		}
-// 		if err := json.Unmarshal(body, &hb); err != nil {
-// 			http.Error(w, err.Error(), http.StatusBadRequest)
-// 			return
-// 		}
-// 		worker, err := e.getWorker(&hb)
-// 		if err != nil {
-// 			http.Error(w, err.Error(), http.StatusInternalServerError)
-// 			return
-// 		}
-
-// 		elog.Printf("Heartbeat from worker %s.", worker.Host)
-// 		ourKeysHash, theirKeysHash := e.keys.hashAndB64(), hb.HashedKeys
-// 		if ourKeysHash != theirKeysHash {
-// 			elog.Printf("Worker's keys are invalid.  Re-synchronizing.")
-// 			//go syncAndRegister(e.keys, worker)
-// 		} else {
-// 			e.workers.register(worker)
-// 		}
-// 		w.WriteHeader(http.StatusOK)
-// 	}
-// }
-
-// func getLeaderHandler(ourNonce nonce, weAreLeader chan struct{}) http.HandlerFunc {
-// 	return func(w http.ResponseWriter, r *http.Request) {
-// 		var (
-// 			err        error
-// 			theirNonce nonce
-// 		)
-// 		theirNonce, err = getNonceFromReq(r)
-// 		if err != nil {
-// 			http.Error(w, err.Error(), http.StatusBadRequest)
-// 			return
-// 		}
-
-// 		if ourNonce == theirNonce {
-// 			if len(weAreLeader) == 0 {
-// 				weAreLeader <- struct{}{}
-// 			}
-// 		} else {
-// 			// We may end up in this branch for two reasons:
-// 			// 1. We're the leader and a worker beat us to talking to this
-// 			//    endpoint.
-// 			// 2. We're a worker and some other entity in the private network is
-// 			//    talking to this endpoint.  That shouldn't happen.
-// 			elog.Println("Received nonce that does not match our own.")
-// 		}
-// 		w.WriteHeader(http.StatusOK)
-// 	}
-// }
