@@ -69,7 +69,9 @@ func buildEnclaveImage(
 		return errs.Add(err, "failed to pull image")
 	}
 	defer close(output)
-	printDockerLogs(output, out)
+	if err := printDockerLogs(output, out); err != nil {
+		return err
+	}
 	log.Print("Pulled kaniko builder image.")
 
 	// Configure kaniko.  We want a reproducible build for linux/amd64 because
