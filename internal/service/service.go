@@ -19,7 +19,7 @@ import (
 	"github.com/Amnesic-Systems/veil/internal/service/attestation"
 	"github.com/Amnesic-Systems/veil/internal/system"
 	"github.com/Amnesic-Systems/veil/internal/tunnel"
-	"github.com/Amnesic-Systems/veil/internal/util"
+	"github.com/Amnesic-Systems/veil/internal/util/must"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -58,7 +58,7 @@ func Run(
 	extSrv := newExtSrv(config, builder)
 	extSrv.TLSConfig = &tls.Config{
 		Certificates: []tls.Certificate{
-			util.Must(tls.X509KeyPair(cert, key)),
+			must.Get(tls.X509KeyPair(cert, key)),
 		},
 	}
 

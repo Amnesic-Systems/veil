@@ -28,7 +28,7 @@ import (
 	"github.com/Amnesic-Systems/veil/internal/service"
 	"github.com/Amnesic-Systems/veil/internal/service/attestation"
 	"github.com/Amnesic-Systems/veil/internal/testutil"
-	"github.com/Amnesic-Systems/veil/internal/util"
+	"github.com/Amnesic-Systems/veil/internal/util/must"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -166,7 +166,7 @@ func TestPages(t *testing.T) {
 		{
 			name: "config with nonce",
 			url: extSrv(service.PathConfig + "?nonce=" +
-				util.Must(nonce.New()).URLEncode(),
+				must.Get(nonce.New()).URLEncode(),
 			),
 			wantBody: `"Debug":false`,
 		},
@@ -195,7 +195,7 @@ func TestEnclaveCodeURI(t *testing.T) {
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 	defer resp.Body.Close()
 
-	body := util.Must(io.ReadAll(resp.Body))
+	body := must.Get(io.ReadAll(resp.Body))
 	require.Contains(t, string(body), codeURI)
 }
 
@@ -268,7 +268,7 @@ func TestAttestation(t *testing.T) {
 		{
 			name:     "valid attestation request",
 			url:      extSrv(service.PathAttestation),
-			nonce:    util.Must(nonce.New()),
+			nonce:    must.Get(nonce.New()),
 			wantCode: http.StatusOK,
 		},
 	}
@@ -451,7 +451,7 @@ func TestRunApp(t *testing.T) {
 				"https://localhost:%d"+service.PathConfig+"?nonce=%s",
 				fd.Name(),
 				defaultExtPort,
-				util.Must(nonce.New()).URLEncode(),
+				must.Get(nonce.New()).URLEncode(),
 			),
 		},
 	}

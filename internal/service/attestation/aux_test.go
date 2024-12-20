@@ -8,12 +8,12 @@ import (
 	"github.com/Amnesic-Systems/veil/internal/enclave"
 	"github.com/Amnesic-Systems/veil/internal/errs"
 	"github.com/Amnesic-Systems/veil/internal/nonce"
-	"github.com/Amnesic-Systems/veil/internal/util"
+	"github.com/Amnesic-Systems/veil/internal/util/must"
 	"github.com/stretchr/testify/require"
 )
 
 func TestGetters(t *testing.T) {
-	n := util.Must(nonce.New())
+	n := must.Get(nonce.New())
 	s := addr.Of(sha256.Sum256([]byte("foo")))
 	h1 := &Hashes{TlsKeyHash: addr.Of(sha256.Sum256([]byte("foo")))}
 	h2 := &Hashes{

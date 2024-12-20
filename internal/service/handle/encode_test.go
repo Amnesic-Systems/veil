@@ -14,7 +14,7 @@ import (
 	"github.com/Amnesic-Systems/veil/internal/httperr"
 	"github.com/Amnesic-Systems/veil/internal/nonce"
 	"github.com/Amnesic-Systems/veil/internal/service/attestation"
-	"github.com/Amnesic-Systems/veil/internal/util"
+	"github.com/Amnesic-Systems/veil/internal/util/must"
 )
 
 func TestEncodeAndAttest(t *testing.T) {
@@ -44,7 +44,7 @@ func TestEncodeAndAttest(t *testing.T) {
 		},
 		{
 			name:       "everything valid",
-			nonce:      util.Must(nonce.New()),
+			nonce:      must.Get(nonce.New()),
 			wantStatus: http.StatusOK,
 			body:       httperr.New("random error"),
 			wantBody:   `{"error":"random error"}` + "\n",

@@ -9,7 +9,7 @@ import (
 	"github.com/Amnesic-Systems/veil/internal/enclave/nitro"
 	"github.com/Amnesic-Systems/veil/internal/enclave/noop"
 	"github.com/Amnesic-Systems/veil/internal/nonce"
-	"github.com/Amnesic-Systems/veil/internal/util"
+	"github.com/Amnesic-Systems/veil/internal/util/must"
 	"github.com/stretchr/testify/require"
 )
 
@@ -18,7 +18,7 @@ func TestBuilder(t *testing.T) {
 	if nitro.IsEnclave() {
 		attester = nitro.NewAttester()
 	}
-	nonce1, nonce2 := util.Must(nonce.New()), util.Must(nonce.New())
+	nonce1, nonce2 := must.Get(nonce.New()), must.Get(nonce.New())
 	sha1, sha2 := sha256.Sum256([]byte("foo")), sha256.Sum256([]byte("bar"))
 	hashes1 := &Hashes{TlsKeyHash: addr.Of(sha256.Sum256([]byte("foo")))}
 	hashes2 := &Hashes{TlsKeyHash: addr.Of(sha256.Sum256([]byte("bar")))}
