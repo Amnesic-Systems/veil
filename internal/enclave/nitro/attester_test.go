@@ -5,7 +5,7 @@ import (
 
 	"github.com/Amnesic-Systems/veil/internal/enclave"
 	"github.com/Amnesic-Systems/veil/internal/nonce"
-	"github.com/Amnesic-Systems/veil/internal/util"
+	"github.com/Amnesic-Systems/veil/internal/util/must"
 	"github.com/stretchr/testify/require"
 )
 
@@ -31,7 +31,7 @@ func TestNitroAttest(t *testing.T) {
 		{
 			name: "aux info with nonce",
 			aux: &enclave.AuxInfo{
-				Nonce: util.Must(nonce.New()).ToSlice(),
+				Nonce: must.Get(nonce.New()).ToSlice(),
 			},
 		},
 	}
@@ -59,7 +59,7 @@ func TestNitroVerify(t *testing.T) {
 		require.NoError(t, err)
 		return doc
 	}
-	testNonce := util.Must(nonce.New())
+	testNonce := must.Get(nonce.New())
 
 	cases := []struct {
 		name    string
@@ -86,13 +86,13 @@ func TestNitroVerify(t *testing.T) {
 		},
 		{
 			name:    "nonce mismatch",
-			doc:     getDoc(t, util.Must(nonce.New())),
-			nonce:   util.Must(nonce.New()),
+			doc:     getDoc(t, must.Get(nonce.New())),
+			nonce:   must.Get(nonce.New()),
 			wantErr: true,
 		},
 		{
 			name: "no nonce",
-			doc:  getDoc(t, util.Must(nonce.New())),
+			doc:  getDoc(t, must.Get(nonce.New())),
 		},
 		{
 			name:  "valid document and nonce",

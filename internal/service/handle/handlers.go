@@ -13,7 +13,7 @@ import (
 	"github.com/Amnesic-Systems/veil/internal/httperr"
 	"github.com/Amnesic-Systems/veil/internal/httpx"
 	"github.com/Amnesic-Systems/veil/internal/service/attestation"
-	"github.com/Amnesic-Systems/veil/internal/util"
+	"github.com/Amnesic-Systems/veil/internal/util/must"
 )
 
 // Index informs the visitor that this host runs inside an enclave. This is
@@ -62,7 +62,7 @@ func Hashes(hashes *attestation.Hashes) http.HandlerFunc {
 func AppHash(
 	setAppHash func(*[sha256.Size]byte),
 ) http.HandlerFunc {
-	b := util.Must(json.Marshal(&attestation.Hashes{
+	b := must.Get(json.Marshal(&attestation.Hashes{
 		TlsKeyHash: addr.Of(sha256.Sum256([]byte("foo"))),
 		AppKeyHash: addr.Of(sha256.Sum256([]byte("bar"))),
 	}))

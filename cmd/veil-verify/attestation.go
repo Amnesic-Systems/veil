@@ -23,7 +23,7 @@ import (
 	"github.com/Amnesic-Systems/veil/internal/httpx"
 	"github.com/Amnesic-Systems/veil/internal/nonce"
 	"github.com/Amnesic-Systems/veil/internal/service"
-	"github.com/Amnesic-Systems/veil/internal/util"
+	"github.com/Amnesic-Systems/veil/internal/util/must"
 )
 
 var (
@@ -165,8 +165,8 @@ func toPCR(jsonMsmts []byte) (_ enclave.PCR, err error) {
 	}
 
 	return enclave.PCR{
-		0: util.Must(hex.DecodeString(m.Measurements.PCR0)),
-		1: util.Must(hex.DecodeString(m.Measurements.PCR1)),
-		2: util.Must(hex.DecodeString(m.Measurements.PCR2)),
+		0: must.Get(hex.DecodeString(m.Measurements.PCR0)),
+		1: must.Get(hex.DecodeString(m.Measurements.PCR1)),
+		2: must.Get(hex.DecodeString(m.Measurements.PCR2)),
 	}, nil
 }
