@@ -29,3 +29,10 @@ func Add(err error, str string, args ...any) error {
 	}
 	return fmt.Errorf("%s: %w", fmt.Sprintf(str, args...), err)
 }
+
+func Join(origErr *error, new error) {
+	if origErr == nil {
+		return
+	}
+	*origErr = errors.Join(*origErr, new)
+}

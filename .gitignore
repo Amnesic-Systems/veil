@@ -1,6 +1,7 @@
 .vscode
 cmd/veil/veil
 cmd/veil-verify/veil-verify
+cmd/veil-proxy/veil-proxy
 cover.html
 cover.out
 *.tar
