@@ -9,7 +9,6 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 	"os"
-	"os/signal"
 	"sync"
 
 	"github.com/Amnesic-Systems/veil/internal/config"
@@ -98,9 +97,6 @@ func acceptLoop(ln net.Listener) {
 }
 
 func run(ctx context.Context, out io.Writer, args []string) (origErr error) {
-	_, cancel := signal.NotifyContext(ctx, os.Interrupt)
-	defer cancel()
-
 	cfg, err := parseFlags(out, args)
 	if err != nil {
 		return err
