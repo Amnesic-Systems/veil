@@ -17,7 +17,7 @@ image_test_dockerfile = docker/Dockerfile-unit-test
 image_test_tar       := $(image_test_tag).tar
 image_test_eif       := $(image_test_tag).eif
 
-cover_out = cover.out
+cover_out  = cover.out
 cover_html = cover.html
 
 all: $(veil) $(veil_verify) $(veil_proxy)
