@@ -52,7 +52,7 @@ $(image_eif): $(image_tar)
 		--output-file $(image_eif)
 
 .PHONY: enclave
-enclave: $(godeps) $(image_eif) $(terminate)
+enclave: $(godeps) $(image_eif) terminate
 	@echo "Running enclave..."
 	@nitro-cli run-enclave \
 		--enclave-name veil \
@@ -80,7 +80,7 @@ $(image_test_eif): $(image_test_tar)
 		--output-file $(image_test_eif)
 
 .PHONY: enclave-test
-enclave-test: $(godeps) $(image_test_eif) $(terminate)
+enclave-test: $(godeps) $(image_test_eif) terminate
 	@echo "Running enclave tests..."
 	@nitro-cli run-enclave \
 		--enclave-name veil-unit-tests \
