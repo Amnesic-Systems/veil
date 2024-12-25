@@ -61,7 +61,7 @@ enclave: $(godeps) $(image_eif) terminate
 		--memory 3850
 
 $(image_test_tar): $(godeps) $(image_test_dockerfile)
-	@echo "Building $(image_tar)..."
+	@echo "Building $(image_test_tar)..."
 	@docker run --volume $(PWD):/workspace \
 		gcr.io/kaniko-project/executor:v1.9.2 \
 		--dockerfile $(image_test_dockerfile) \
