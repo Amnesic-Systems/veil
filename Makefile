@@ -1,19 +1,20 @@
-prog = veil
-prog_dir = cmd/veil
-verify_prog = veil-verify
-verify_prog_dir = cmd/veil-verify
-proxy_prog = veil-proxy
-proxy_prog_dir = cmd/veil-proxy
-godeps = go.mod go.sum $(shell find cmd internal -name "*.go" -type f)
+veil            = cmd/veil/veil
+veil_dir        = cmd/veil
+veil_verify     = cmd/veil-verify/veil-verify
+veil_verify_dir = cmd/veil-verify
+veil_proxy      = cmd/veil-proxy/veil-proxy
+veil_proxy_dir  = cmd/veil-proxy
+godeps          = go.mod go.sum \
+                  $(shell find cmd internal -name "*.go" -type f)
 
-image_tag := $(prog)
-image_tar := $(prog).tar
-image_eif := $(prog).eif
+image_tag  = veil
+image_tar := $(image_tag).tar
+image_eif := $(image_tag).eif
 
 cover_out = cover.out
 cover_html = cover.html
 
-all: $(prog)
+all: $(veil) $(veil_verify) $(veil_proxy)
 
 .PHONY: lint
 lint: $(godeps)
@@ -78,27 +79,24 @@ $(cover_out): $(godeps)
 $(cover_html): $(cover_out)
 	go tool cover -html=$(cover_out) -o $(cover_html)
 
-$(prog): $(godeps)
+$(veil): $(godeps)
 	@CGO_ENABLED=0 go build \
-		-C $(prog_dir) \
+		-C $(veil_dir) \
 		-trimpath \
 		-ldflags="-s -w" \
-		-buildvcs=false \
-		-o $(prog)
-	@-sha1sum "$(prog_dir)/$(prog)"
+		-buildvcs=false
+	@-sha1sum "$(veil)"
 
-$(verify_prog): $(godeps)
-	@go build -C $(verify_prog_dir) -o $(verify_prog)
-	@-sha1sum "$(verify_prog_dir)/$(verify_prog)"
+$(veil_verify): $(godeps)
+	@go build -C $(veil_verify_dir)
+	@-sha1sum "$(veil_verify)"
 
-$(proxy_prog): $(godeps)
-	@go build -C $(proxy_prog_dir) -o $(proxy_prog)
-	@-sha1sum "$(proxy_prog_dir)/$(proxy_prog)"
+$(veil_proxy): $(godeps)
+	@go build -C $(veil_proxy_dir)
+	@-sha1sum "$(veil_proxy)"
 
 .PHONY: clean
 clean:
-	rm -f $(prog_dir)/$(prog)
-	rm -f $(verify_prog_dir)/$(verify_prog)
-	rm -f $(proxy_prog_dir)/$(proxy_prog)
+	rm -f $(veil) $(veil_verify) $(veil_proxy)
 	rm -f $(cover_out) $(cover_html)
 	rm -f $(image_tar) $(image_eif)
