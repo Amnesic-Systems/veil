@@ -58,7 +58,7 @@ enclave: $(godeps) $(image_eif) $(terminate)
 		--enclave-name veil \
 		--eif-path $(image_eif) \
 		--cpu-count 2 \
-		--memory 3500
+		--memory 3850
 
 $(image_test_tar): $(godeps) $(image_test_dockerfile)
 	@echo "Building $(image_tar)..."
@@ -87,7 +87,7 @@ enclave-test: $(godeps) $(image_test_eif) $(terminate)
 		--eif-path $(image_test_eif) \
 		--attach-console \
 		--cpu-count 2 \
-		--memory 3500
+		--memory 3850
 
 .PHONY: terminate
 terminate:
