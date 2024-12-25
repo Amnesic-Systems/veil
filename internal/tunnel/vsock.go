@@ -69,13 +69,13 @@ func setupTunnel(
 		errCh = make(chan error, 1)
 	)
 
-	// Establish TCP-over-VSOCK connection with nitriding-proxy.
+	// Establish TCP-over-VSOCK connection with veil-proxy.
 	conn, err := vsock.Dial(proxyCID, port, nil)
 	if err != nil {
-		return fmt.Errorf("failed to connect to nitriding-proxy: %w", err)
+		return fmt.Errorf("failed to connect to veil-proxy: %w", err)
 	}
 	defer conn.Close()
-	log.Println("Established TCP connection with nitriding-proxy.")
+	log.Println("Established TCP connection with veil-proxy.")
 
 	// Create and configure the tun device.
 	tun, err := tun.SetupTunAsEnclave()
