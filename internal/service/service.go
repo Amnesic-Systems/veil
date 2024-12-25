@@ -25,22 +25,22 @@ import (
 
 func Run(
 	ctx context.Context,
-	config *config.Config,
+	cfg *config.Veil,
 	attester enclave.Attester,
 	mechanism tunnel.Mechanism,
 ) {
 	var appReady = make(chan struct{})
 
 	// Run safety checks and setup tasks before starting.
-	if err := checkSystemSafety(config); err != nil {
+	if err := checkSystemSafety(cfg); err != nil {
 		log.Fatalf("Failed safety check: %v", err)
 	}
-	if err := setupSystem(config); err != nil {
+	if err := setupSystem(cfg); err != nil {
 		log.Fatalf("Failed to set up system: %v", err)
 	}
 
 	// Create a TLS certificate for the external Web server.
-	cert, key, err := httpx.CreateCertificate(config.FQDN)
+	cert, key, err := httpx.CreateCertificate(cfg.FQDN)
 	if err != nil {
 		log.Fatalf("Failed to create certificate: %v", err)
 	}
@@ -50,12 +50,12 @@ func Run(
 	hashes.SetTLSHash(addr.Of(sha256.Sum256(cert)))
 
 	// Initialize Web servers.
-	intSrv := newIntSrv(config, hashes, appReady)
+	intSrv := newIntSrv(cfg, hashes, appReady)
 	builder := attestation.NewBuilder(
 		attester,
 		attestation.WithHashes(hashes),
 	)
-	extSrv := newExtSrv(config, builder)
+	extSrv := newExtSrv(cfg, builder)
 	extSrv.TLSConfig = &tls.Config{
 		Certificates: []tls.Certificate{
 			must.Get(tls.X509KeyPair(cert, key)),
@@ -73,9 +73,9 @@ func Run(
 	log.Println("Exiting.")
 }
 
-func checkSystemSafety(config *config.Config) (err error) {
+func checkSystemSafety(cfg *config.Veil) (err error) {
 	defer errs.Wrap(&err, "failed system safety check")
-	if config.Testing {
+	if cfg.Testing {
 		return nil
 	}
 
@@ -85,15 +85,15 @@ func checkSystemSafety(config *config.Config) (err error) {
 	return nil
 }
 
-func setupSystem(config *config.Config) (err error) {
+func setupSystem(cfg *config.Veil) (err error) {
 	defer errs.Wrap(&err, "failed to set up system")
 
 	// GitHub Actions won't allow us to set up the lo interface.
-	if config.Testing {
+	if cfg.Testing {
 		return nil
 	}
 
-	if err := system.SetResolver(config.Resolver); err != nil {
+	if err := system.SetResolver(cfg.Resolver); err != nil {
 		return err
 	}
 
@@ -146,28 +146,28 @@ func startAllWebSrvs(
 }
 
 func newIntSrv(
-	config *config.Config,
+	cfg *config.Veil,
 	hashes *attestation.Hashes,
 	appReady chan struct{},
 ) *http.Server {
 	r := chi.NewRouter()
-	addInternalRoutes(r, config, hashes, appReady)
+	addInternalRoutes(r, cfg, hashes, appReady)
 
 	return &http.Server{
-		Addr:    net.JoinHostPort("127.0.0.1", fmt.Sprintf("%d", config.IntPort)),
+		Addr:    net.JoinHostPort("127.0.0.1", fmt.Sprintf("%d", cfg.IntPort)),
 		Handler: http.Handler(r),
 	}
 }
 
 func newExtSrv(
-	config *config.Config,
+	cfg *config.Veil,
 	builder *attestation.Builder,
 ) *http.Server {
 	r := chi.NewRouter()
-	addExternalPublicRoutes(r, config, builder)
+	addExternalPublicRoutes(r, cfg, builder)
 
 	return &http.Server{
-		Addr:    net.JoinHostPort("0.0.0.0", fmt.Sprintf("%d", config.ExtPort)),
+		Addr:    net.JoinHostPort("0.0.0.0", fmt.Sprintf("%d", cfg.ExtPort)),
 		Handler: http.Handler(r),
 	}
 }

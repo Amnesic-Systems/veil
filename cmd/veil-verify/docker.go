@@ -13,6 +13,7 @@ import (
 	"path"
 
 	"github.com/Amnesic-Systems/veil/internal/addr"
+	"github.com/Amnesic-Systems/veil/internal/config"
 	"github.com/Amnesic-Systems/veil/internal/enclave"
 	"github.com/Amnesic-Systems/veil/internal/errs"
 	"github.com/docker/docker/api/types"
@@ -57,7 +58,7 @@ func removeContainer(cli *client.Client, id string) {
 func buildEnclaveImage(
 	ctx context.Context,
 	cli *client.Client,
-	cfg *config,
+	cfg *config.VeilVerify,
 	out io.Writer,
 ) (err error) {
 	defer errs.Wrap(&err, "failed to build enclave image")
@@ -80,7 +81,7 @@ func buildEnclaveImage(
 		Tty:   true,
 		Image: builderImage,
 		Cmd: []string{
-			"--dockerfile", cfg.dockerfile,
+			"--dockerfile", cfg.Dockerfile,
 			"--reproducible",
 			"--no-push",
 			"--log-format", "text",
@@ -96,7 +97,7 @@ func buildEnclaveImage(
 		Mounts: []mount.Mount{
 			{
 				Type:   mount.TypeBind,
-				Source: cfg.dir,
+				Source: cfg.Dir,
 				Target: "/workspace",
 			},
 		},
@@ -166,13 +167,13 @@ func getContainerExitCode(
 func loadEnclaveImage(
 	ctx context.Context,
 	cli *client.Client,
-	cfg *config,
+	cfg *config.VeilVerify,
 	verbose io.Writer,
 ) (err error) {
 	defer errs.Wrap(&err, "failed to load enclave image")
 
 	// Read the tar image.
-	file, err := os.Open(path.Join(cfg.dir, enclaveTarImage))
+	file, err := os.Open(path.Join(cfg.Dir, enclaveTarImage))
 	if err != nil {
 		return err
 	}

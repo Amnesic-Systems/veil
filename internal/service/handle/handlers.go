@@ -18,7 +18,7 @@ import (
 
 // Index informs the visitor that this host runs inside an enclave. This is
 // useful for testing.
-func Index(cfg *config.Config) http.HandlerFunc {
+func Index(cfg *config.Veil) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		page := "This host runs inside an AWS Nitro Enclave."
 		if cfg.EnclaveCodeURI != "" {
@@ -32,7 +32,7 @@ func Index(cfg *config.Config) http.HandlerFunc {
 // Config returns the enclave's configuration.
 func Config(
 	builder *attestation.Builder,
-	cfg *config.Config,
+	cfg *config.Veil,
 ) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// If the client provided a nonce, we will add an attestation document

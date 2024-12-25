@@ -467,7 +467,7 @@ func TestRunApp(t *testing.T) {
 
 			// Decode the configuration file and verify that the application
 			// command is identical to what we just ran.
-			var cfg config.Config
+			var cfg config.Veil
 			require.NoError(t, json.Unmarshal(content, &cfg))
 			require.Equal(t, c.command, cfg.AppCmd)
 		})
