@@ -12,6 +12,11 @@ image_dockerfile = docker/Dockerfile
 image_tar       := $(image_tag).tar
 image_eif       := $(image_tag).eif
 
+image_test_tag        = veil-unit-test
+image_test_dockerfile = docker/Dockerfile-unit-test
+image_test_tar       := $(image_test_tag).tar
+image_test_eif       := $(image_test_tag).eif
+
 cover_out = cover.out
 cover_html = cover.html
 
@@ -46,11 +51,6 @@ $(image_eif): $(image_tar)
 		--docker-uri $(image_tag) \
 		--output-file $(image_eif)
 
-.PHONY: terminate
-terminate:
-	@nitro-cli terminate-enclave \
-		--all
-
 .PHONY: enclave
 enclave: $(godeps) $(image_eif) $(terminate)
 	@echo "Running enclave..."
@@ -60,15 +60,39 @@ enclave: $(godeps) $(image_eif) $(terminate)
 		--cpu-count 2 \
 		--memory 3500
 
+$(image_test_tar): $(godeps) $(image_test_dockerfile)
+	@echo "Building $(image_tar)..."
+	@docker run --volume $(PWD):/workspace \
+		gcr.io/kaniko-project/executor:v1.9.2 \
+		--dockerfile $(image_test_dockerfile) \
+		--reproducible \
+		--no-push \
+		--verbosity warn \
+		--tarPath $(image_test_tar) \
+		--destination $(image_test_tag) \
+		--custom-platform linux/amd64
+
+$(image_test_eif): $(image_test_tar)
+	@echo "Building $(image_test_eif)..."
+	@docker load --quiet --input $<
+	@nitro-cli build-enclave \
+		--docker-uri $(image_test_tag) \
+		--output-file $(image_test_eif)
+
 .PHONY: enclave-test
-enclave-test: $(godeps) $(image_eif) $(terminate)
+enclave-test: $(godeps) $(image_test_eif) $(terminate)
 	@echo "Running enclave tests..."
 	@nitro-cli run-enclave \
 		--enclave-name veil-unit-tests \
-		--eif-path $(image_eif) \
+		--eif-path $(image_test_eif) \
 		--attach-console \
 		--cpu-count 2 \
 		--memory 3500
+
+.PHONY: terminate
+terminate:
+	@nitro-cli terminate-enclave \
+		--all
 
 .PHONY: coverage
 coverage: $(cover_html)
