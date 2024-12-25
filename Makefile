@@ -97,6 +97,6 @@ $(veil_proxy): $(godeps)
 
 .PHONY: clean
 clean:
-	rm -f $(veil) $(veil_verify) $(veil_proxy)
-	rm -f $(cover_out) $(cover_html)
-	rm -f $(image_tar) $(image_eif)
+	@rm -f $(veil) $(veil_verify) $(veil_proxy)
+	@rm -f $(cover_out) $(cover_html)
+	@rm -f $(image_tar) $(image_eif)
