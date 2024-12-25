@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"io"
 	"log"
@@ -96,7 +95,7 @@ func acceptLoop(ln net.Listener) {
 	}
 }
 
-func run(ctx context.Context, out io.Writer, args []string) (origErr error) {
+func run(out io.Writer, args []string) (origErr error) {
 	cfg, err := parseFlags(out, args)
 	if err != nil {
 		return err
@@ -141,7 +140,7 @@ func run(ctx context.Context, out io.Writer, args []string) (origErr error) {
 }
 
 func main() {
-	if err := run(context.Background(), os.Stdout, os.Args[1:]); err != nil {
+	if err := run(os.Stdout, os.Args[1:]); err != nil {
 		log.Fatalf("Failed to run proxy: %v", err)
 	}
 }
