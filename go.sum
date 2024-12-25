@@ -1,5 +1,3 @@
-github.com/Amnesic-Systems/nitriding-proxy v0.1.1 h1:iDyhRPbRRzs7VwJW9KUw1SFJprK015pt/wwopHSY/Ko=
-github.com/Amnesic-Systems/nitriding-proxy v0.1.1/go.mod h1:IMq3AGc+tKDU+KbXKc2icAFNiyoQrICJb61fcXc6r1g=
 github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161 h1:L/gRVlceqvL25UVaW/CKtUDjefjrs0SPonmDGUVOYP0=
 github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161/go.mod h1:xomTg63KZ2rFqZQzSB4Vz2SUXa1BpHTVz9L5PTmPC4E=
 github.com/Microsoft/go-winio v0.6.2 h1:F2VQgta7ecxGYO8k3ZZz3RS8fVIXVxONVUPlNERoyfY=

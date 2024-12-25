@@ -70,6 +70,10 @@ type Veil struct {
 	// of the real attester.
 	Testing bool
 
+	// VSOCKPort contains the port that veil uses to communicate with veil-proxy
+	// on the EC2 host.
+	VSOCKPort uint32
+
 	// WaitForApp instructs veil to wait for the application's signal
 	// before launching the Internet-facing Web server.  Set this flag if your
 	// application takes a while to bootstrap and you don't want to risk
@@ -93,6 +97,10 @@ func (c *Veil) Validate() map[string]string {
 	}
 	if !isValidPort(c.IntPort) {
 		problems["-int-port"] = "must be a valid port number"
+	}
+
+	if c.VSOCKPort == 0 {
+		problems["-vsock-port"] = "port must not be 0"
 	}
 
 	// Check invalid field combinations.

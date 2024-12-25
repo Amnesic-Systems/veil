@@ -16,5 +16,5 @@ func TestNoopTunneler(t *testing.T) {
 	defer wg.Wait()
 	defer ctx.Done()
 
-	tunnel.Start(ctx, wg)
+	tunnel.Start(ctx, wg, 0)
 }

@@ -15,12 +15,12 @@ func TestVeilProxyConfig(t *testing.T) {
 	}{
 		{
 			name:     "invalid port",
-			cfg:      &VeilProxy{Port: 0},
+			cfg:      &VeilProxy{VSOCKPort: 0},
 			wantErrs: 1,
 		},
 		{
 			name: "valid port",
-			cfg:  &VeilProxy{Port: 1},
+			cfg:  &VeilProxy{VSOCKPort: 1},
 		},
 	}
 

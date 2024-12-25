@@ -17,6 +17,7 @@ import (
 	"github.com/Amnesic-Systems/veil/internal/net/nat"
 	"github.com/Amnesic-Systems/veil/internal/net/proxy"
 	"github.com/Amnesic-Systems/veil/internal/net/tun"
+	"github.com/Amnesic-Systems/veil/internal/tunnel"
 	"github.com/Amnesic-Systems/veil/internal/types/validate"
 	"github.com/mdlayher/vsock"
 )
@@ -30,12 +31,12 @@ func parseFlags(out io.Writer, args []string) (_ *config.VeilProxy, err error) {
 	profile := fs.Bool(
 		"profile",
 		false,
-		"Enable profiling.",
+		"enable profiling",
 	)
-	port := fs.Uint(
-		"port",
-		1024,
-		"VSOCK port that the enclave connects to.",
+	vsockPort := fs.Uint(
+		"vsock-port",
+		tunnel.DefaultVSOCKPort,
+		"VSOCK listening port that veil connects to",
 	)
 	if err := fs.Parse(args); err != nil {
 		return nil, err
@@ -43,8 +44,8 @@ func parseFlags(out io.Writer, args []string) (_ *config.VeilProxy, err error) {
 
 	// Build and validate the configuration.
 	cfg := &config.VeilProxy{
-		Profile: *profile,
-		Port:    uint32(*port),
+		Profile:   *profile,
+		VSOCKPort: uint32(*vsockPort),
 	}
 	return cfg, validate.Object(cfg)
 }
@@ -117,7 +118,7 @@ func run(ctx context.Context, out io.Writer, args []string) (origErr error) {
 
 	// Create a VSOCK listener that listens for incoming connections from the
 	// enclave.
-	ln, err := listenVSOCK(cfg.Port)
+	ln, err := listenVSOCK(cfg.VSOCKPort)
 	if err != nil {
 		return err
 	}

@@ -84,6 +84,11 @@ func parseFlags(out io.Writer, args []string) (*config.Veil, error) {
 		false,
 		"enable testing by disabling attestation",
 	)
+	vsockPort := fs.Uint(
+		"vsock-port",
+		tunnel.DefaultVSOCKPort,
+		"VSOCK port that veil-proxy is listening on",
+	)
 	waitForApp := fs.Bool(
 		"wait-for-app",
 		false,
@@ -115,6 +120,7 @@ func parseFlags(out io.Writer, args []string) (*config.Veil, error) {
 		Resolver:       *resolver,
 		SilenceApp:     *silenceApp,
 		Testing:        *testing,
+		VSOCKPort:      uint32(*vsockPort),
 		WaitForApp:     *waitForApp,
 	}
 	return cfg, validate.Object(cfg)

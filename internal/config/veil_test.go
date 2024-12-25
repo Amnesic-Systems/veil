@@ -15,16 +15,16 @@ func TestVeilConfig(t *testing.T) {
 	}{
 		{
 			name: "valid config",
-			cfg:  &Veil{ExtPort: 8443, IntPort: 8080},
+			cfg:  &Veil{ExtPort: 8443, IntPort: 8080, VSOCKPort: 1024},
 		},
 		{
 			name: "still valid config",
-			cfg:  &Veil{ExtPort: 1, IntPort: 65535},
+			cfg:  &Veil{ExtPort: 1, IntPort: 65535, VSOCKPort: 1024},
 		},
 		{
 			name:     "invalid ports",
-			cfg:      &Veil{ExtPort: 0, IntPort: 65536},
-			wantErrs: 2,
+			cfg:      &Veil{ExtPort: 0, IntPort: 65536, VSOCKPort: 0},
+			wantErrs: 3,
 		},
 		{
 			name: "invalid flag combination",
@@ -32,6 +32,7 @@ func TestVeilConfig(t *testing.T) {
 				SilenceApp: true,
 				ExtPort:    8443,
 				IntPort:    8080,
+				VSOCKPort:  1024,
 			},
 			wantErrs: 1,
 		},
@@ -42,6 +43,7 @@ func TestVeilConfig(t *testing.T) {
 				AppCmd:     "echo",
 				ExtPort:    8443,
 				IntPort:    8080,
+				VSOCKPort:  1024,
 			},
 		},
 	}

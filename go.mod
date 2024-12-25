@@ -3,7 +3,6 @@ module github.com/Amnesic-Systems/veil
 go 1.23.0
 
 require (
-	github.com/Amnesic-Systems/nitriding-proxy v0.1.1
 	github.com/coreos/go-iptables v0.8.0
 	github.com/docker/docker v27.3.1+incompatible
 	github.com/fatih/color v1.18.0
