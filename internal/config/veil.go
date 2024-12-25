@@ -17,7 +17,7 @@ type Veil struct {
 	AppCmd string
 
 	// AppWebSrv should be set to the enclave-internal Web server of the
-	// enclave application, e.g., "http://127.0.0.1:8080".  Nitriding acts as a
+	// enclave application, e.g., "http://127.0.0.1:8080".  Veil acts as a
 	// TLS-terminating reverse proxy and forwards incoming HTTP requests to
 	// this Web server.  Note that this configuration option is only necessary
 	// if the enclave application exposes an HTTP server.  Non-HTTP enclave
@@ -70,7 +70,7 @@ type Veil struct {
 	// of the real attester.
 	Testing bool
 
-	// WaitForApp instructs nitriding to wait for the application's signal
+	// WaitForApp instructs veil to wait for the application's signal
 	// before launching the Internet-facing Web server.  Set this flag if your
 	// application takes a while to bootstrap and you don't want to risk
 	// inconsistent state when syncing, or unexpected attestation documents.
