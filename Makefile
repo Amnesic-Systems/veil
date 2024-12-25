@@ -99,5 +99,6 @@ $(proxy_prog): $(godeps)
 clean:
 	rm -f $(prog_dir)/$(prog)
 	rm -f $(verify_prog_dir)/$(verify_prog)
+	rm -f $(proxy_prog_dir)/$(proxy_prog)
 	rm -f $(cover_out) $(cover_html)
 	rm -f $(image_tar) $(image_eif)
