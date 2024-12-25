@@ -88,8 +88,8 @@ func setupTunnel(
 	// Spawn goroutines that forward traffic and wait for them to finish.
 	wg.Add(2)
 	defer wg.Wait()
-	go proxy.VsockToTun(conn, tun, errCh, &wg)
-	go proxy.TunToVsock(tun, conn, errCh, &wg)
+	go proxy.VSOCKToTun(conn, tun, errCh, &wg)
+	go proxy.TunToVSOCK(tun, conn, errCh, &wg)
 	log.Println("Started goroutines to forward traffic.")
 
 	// Reset the backoff interval.

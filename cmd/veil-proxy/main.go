@@ -89,8 +89,8 @@ func acceptLoop(ln net.Listener) {
 
 		var wg sync.WaitGroup
 		wg.Add(2)
-		go proxy.VsockToTun(vm, tunDev, ch, &wg)
-		go proxy.TunToVsock(tunDev, vm, ch, &wg)
+		go proxy.VSOCKToTun(vm, tunDev, ch, &wg)
+		go proxy.TunToVSOCK(tunDev, vm, ch, &wg)
 		wg.Wait()
 	}
 }

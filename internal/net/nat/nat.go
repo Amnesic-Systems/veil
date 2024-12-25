@@ -1,8 +1,9 @@
 package nat
 
 import (
-	"github.com/Amnesic-Systems/veil/internal/net/tun"
 	"github.com/coreos/go-iptables/iptables"
+
+	"github.com/Amnesic-Systems/veil/internal/net/tun"
 )
 
 // Enable enables our iptables NAT rules, which connect the enclave to the

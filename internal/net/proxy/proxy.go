@@ -11,11 +11,16 @@ import (
 
 const lenBufSize = 2
 
-// TunToVsock forwards network packets from the tun device to our
+// TunToVSOCK forwards network packets from the tun device to our
 // TCP-over-VSOCK connection. The function keeps on forwarding packets until we
 // encounter an error or EOF. Errors (including EOF) are written to the given
 // channel.
-func TunToVsock(from io.ReadCloser, to io.WriteCloser, ch chan error, wg *sync.WaitGroup) {
+func TunToVSOCK(
+	from io.ReadCloser,
+	to io.WriteCloser,
+	ch chan error,
+	wg *sync.WaitGroup,
+) {
 	defer to.Close()
 	defer wg.Done()
 	var (
@@ -43,11 +48,16 @@ func TunToVsock(from io.ReadCloser, to io.WriteCloser, ch chan error, wg *sync.W
 	ch <- fmt.Errorf("stopped tun-to-vsock forwarding: %w", err)
 }
 
-// VsockToTun forwards network packets from our TCP-over-VSOCK connection to
+// VSOCKToTun forwards network packets from our TCP-over-VSOCK connection to
 // the tun interface. The function keeps on forwarding packets until we
 // encounter an error or EOF. Errors (including EOF) are written to the given
 // channel.
-func VsockToTun(from io.ReadCloser, to io.WriteCloser, ch chan error, wg *sync.WaitGroup) {
+func VSOCKToTun(
+	from io.ReadCloser,
+	to io.WriteCloser,
+	ch chan error,
+	wg *sync.WaitGroup,
+) {
 	defer to.Close()
 	defer wg.Done()
 	var (

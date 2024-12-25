@@ -38,8 +38,8 @@ func TestNettest(t *testing.T) {
 			ch         = make(chan error)
 		)
 		wg.Add(2)
-		go TunToVsock(in, fwd1, ch, &wg)
-		go VsockToTun(fwd2, out, ch, &wg)
+		go TunToVSOCK(in, fwd1, ch, &wg)
+		go VSOCKToTun(fwd2, out, ch, &wg)
 		return in, out, func() {}, nil
 	}
 	nettest.TestConn(t, nettest.MakePipe(mkPipe))
@@ -69,8 +69,8 @@ func TestAToB(t *testing.T) {
 	assertEq(t, err, nil)
 
 	wg.Add(2)
-	go TunToVsock(io.NopCloser(bytes.NewReader(sendBuf)), conn1, ch, &wg)
-	go VsockToTun(conn2, recvBuf, ch, &wg)
+	go TunToVSOCK(io.NopCloser(bytes.NewReader(sendBuf)), conn1, ch, &wg)
+	go VSOCKToTun(conn2, recvBuf, ch, &wg)
 	wg.Wait()
 
 	assertEq(t, bytes.Equal(
