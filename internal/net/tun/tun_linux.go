@@ -69,7 +69,9 @@ func createTun() (*os.File, error) {
 	if errno != 0 {
 		return nil, errno
 	}
-	unix.SetNonblock(tunfd, true)
+	if err := unix.SetNonblock(tunfd, true); err != nil {
+		return nil, err
+	}
 
 	return os.NewFile(uintptr(tunfd), tunPath), nil
 }
