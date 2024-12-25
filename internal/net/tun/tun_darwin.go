@@ -1,10 +1,10 @@
-package proxy
+package tun
 
 import (
 	"os"
 )
 
-// nitriding-proxy does not support macOS but we can at least make it compile by
+// veil-proxy does not support macOS but we can at least make it compile by
 // implementing the following functions.
 const err = "not implemented on darwin"
 

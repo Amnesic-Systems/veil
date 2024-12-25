@@ -4,29 +4,21 @@ import (
 	"context"
 	"errors"
 	"flag"
-	"fmt"
 	"io"
 	"log"
 	"os"
 	"os/signal"
-	"path"
 
 	"github.com/docker/docker/client"
 
+	"github.com/Amnesic-Systems/veil/internal/config"
 	"github.com/Amnesic-Systems/veil/internal/errs"
+	"github.com/Amnesic-Systems/veil/internal/types/validate"
 )
 
 var errFailedToParse = errors.New("failed to parse flags")
 
-type config struct {
-	addr       string
-	dir        string
-	dockerfile string
-	verbose    bool
-	testing    bool
-}
-
-func parseFlags(out io.Writer, args []string) (_ *config, err error) {
+func parseFlags(out io.Writer, args []string) (_ *config.VeilVerify, err error) {
 	defer errs.WrapErr(&err, errFailedToParse)
 
 	fs := flag.NewFlagSet("veil-verify", flag.ContinueOnError)
@@ -61,27 +53,15 @@ func parseFlags(out io.Writer, args []string) (_ *config, err error) {
 		return nil, err
 	}
 
-	// Ensure that required arguments are set.
-	if *addr == "" {
-		return nil, errors.New("flag -addr must be provided")
+	// Build and validate the configuration.
+	cfg := &config.VeilVerify{
+		Addr:       *addr,
+		Dir:        *dir,
+		Dockerfile: *dockerfile,
+		Testing:    *testing,
+		Verbose:    *verbose,
 	}
-	if *dir == "" {
-		return nil, errors.New("flag -dir must be provided")
-	}
-
-	// Make sure that the Dockerfile relative to the given directory exists.
-	p := path.Join(*dir, *dockerfile)
-	if _, err := os.Stat(p); err != nil {
-		return nil, fmt.Errorf("given Dockerfile %q does not exist", p)
-	}
-
-	return &config{
-		addr:       *addr,
-		dir:        *dir,
-		dockerfile: *dockerfile,
-		testing:    *testing,
-		verbose:    *verbose,
-	}, nil
+	return cfg, validate.Object(cfg)
 }
 
 func run(ctx context.Context, out io.Writer, args []string) error {
@@ -95,7 +75,7 @@ func run(ctx context.Context, out io.Writer, args []string) error {
 
 	// By default, we discard Docker's logs but we print them in verbose mode.
 	writer := io.Discard
-	if cfg.verbose {
+	if cfg.Verbose {
 		writer = log.Writer()
 	}
 

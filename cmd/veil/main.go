@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"context"
-	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -23,6 +22,7 @@ import (
 	"github.com/Amnesic-Systems/veil/internal/httpx"
 	"github.com/Amnesic-Systems/veil/internal/service"
 	"github.com/Amnesic-Systems/veil/internal/tunnel"
+	"github.com/Amnesic-Systems/veil/internal/types/validate"
 )
 
 const (
@@ -30,7 +30,7 @@ const (
 	defaultIntPort = 8080
 )
 
-func parseFlags(out io.Writer, args []string) (*config.Config, error) {
+func parseFlags(out io.Writer, args []string) (*config.Veil, error) {
 	fs := flag.NewFlagSet("veil", flag.ContinueOnError)
 	fs.SetOutput(out)
 
@@ -84,6 +84,11 @@ func parseFlags(out io.Writer, args []string) (*config.Config, error) {
 		false,
 		"enable testing by disabling attestation",
 	)
+	vsockPort := fs.Uint(
+		"vsock-port",
+		tunnel.DefaultVSOCKPort,
+		"VSOCK port that veil-proxy is listening on",
+	)
 	waitForApp := fs.Bool(
 		"wait-for-app",
 		false,
@@ -103,8 +108,8 @@ func parseFlags(out io.Writer, args []string) (*config.Config, error) {
 		}
 	}
 
-	// Build and validate the config.
-	return &config.Config{
+	// Build and validate the configuration.
+	cfg := &config.Veil{
 		AppCmd:         *appCmd,
 		AppWebSrv:      u,
 		Debug:          *debug,
@@ -115,8 +120,10 @@ func parseFlags(out io.Writer, args []string) (*config.Config, error) {
 		Resolver:       *resolver,
 		SilenceApp:     *silenceApp,
 		Testing:        *testing,
+		VSOCKPort:      uint32(*vsockPort),
 		WaitForApp:     *waitForApp,
-	}, nil
+	}
+	return cfg, validate.Object(cfg)
 }
 
 func run(ctx context.Context, out io.Writer, args []string) (err error) {
@@ -132,15 +139,6 @@ func run(ctx context.Context, out io.Writer, args []string) (err error) {
 	// Parse command line flags.
 	cfg, err := parseFlags(out, args)
 	if err != nil {
-		return err
-	}
-
-	// Validate the configuration.
-	if problems := cfg.Validate(ctx); len(problems) > 0 {
-		err := errors.New("invalid configuration")
-		for field, problem := range problems {
-			err = errors.Join(err, fmt.Errorf("field %s: %v", field, problem))
-		}
 		return err
 	}
 
@@ -167,7 +165,7 @@ func run(ctx context.Context, out io.Writer, args []string) (err error) {
 	return nil
 }
 
-func eventuallyRunAppCmd(ctx context.Context, cfg *config.Config, cmd string) (err error) {
+func eventuallyRunAppCmd(ctx context.Context, cfg *config.Veil, cmd string) (err error) {
 	defer errs.Wrap(&err, "failed to run app command")
 
 	// Wait for the internal service to be ready.

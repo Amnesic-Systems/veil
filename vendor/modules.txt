@@ -1,6 +1,3 @@
-# github.com/Amnesic-Systems/nitriding-proxy v0.1.1
-## explicit; go 1.21
-github.com/Amnesic-Systems/nitriding-proxy
 # github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161
 ## explicit; go 1.16
 github.com/Azure/go-ansiterm
@@ -174,6 +171,7 @@ go.opentelemetry.io/otel/trace/embedded
 # golang.org/x/net v0.33.0
 ## explicit; go 1.18
 golang.org/x/net/bpf
+golang.org/x/net/nettest
 # golang.org/x/sync v0.8.0
 ## explicit; go 1.18
 golang.org/x/sync/errgroup

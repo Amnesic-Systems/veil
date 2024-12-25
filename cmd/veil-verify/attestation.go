@@ -16,6 +16,7 @@ import (
 
 	"github.com/fatih/color"
 
+	"github.com/Amnesic-Systems/veil/internal/config"
 	"github.com/Amnesic-Systems/veil/internal/enclave"
 	"github.com/Amnesic-Systems/veil/internal/enclave/nitro"
 	"github.com/Amnesic-Systems/veil/internal/enclave/noop"
@@ -33,7 +34,7 @@ var (
 
 func attestEnclave(
 	ctx context.Context,
-	cfg *config,
+	cfg *config.VeilVerify,
 	pcrs enclave.PCR,
 ) (err error) {
 	defer errs.WrapErr(&err, errFailedToAttest)
@@ -44,7 +45,7 @@ func attestEnclave(
 		return err
 	}
 
-	req, err := buildReq(ctx, cfg.addr, nonce)
+	req, err := buildReq(ctx, cfg.Addr, nonce)
 	if err != nil {
 		return err
 	}
@@ -76,7 +77,7 @@ func attestEnclave(
 	// talking to an enclave.  The nonce provides assurance that we are talking
 	// to an alive enclave (instead of a replayed attestation document).
 	var attester enclave.Attester = nitro.NewAttester()
-	if cfg.testing {
+	if cfg.Testing {
 		attester = noop.NewAttester()
 	}
 	doc, err := attester.Verify(&rawDoc, nonce)

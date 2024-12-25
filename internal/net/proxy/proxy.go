@@ -5,26 +5,28 @@ import (
 	"fmt"
 	"io"
 	"sync"
+
+	"github.com/Amnesic-Systems/veil/internal/net/tun"
 )
 
-const (
-	lenBufSize  = 2
-	tunMTU      = 65535 // The maximum-allowed MTU for the tun interface.
-	tunName     = "tun0"
-	DefaultPort = 1024
-)
+const lenBufSize = 2
 
-// TunToVsock forwards network packets from the tun device to our
+// TunToVSOCK forwards network packets from the tun device to our
 // TCP-over-VSOCK connection. The function keeps on forwarding packets until we
 // encounter an error or EOF. Errors (including EOF) are written to the given
 // channel.
-func TunToVsock(from io.Reader, to io.WriteCloser, ch chan error, wg *sync.WaitGroup) {
+func TunToVSOCK(
+	from io.ReadCloser,
+	to io.WriteCloser,
+	ch chan error,
+	wg *sync.WaitGroup,
+) {
 	defer to.Close()
 	defer wg.Done()
 	var (
 		err       error
 		pktLenBuf = make([]byte, lenBufSize)
-		pktBuf    = make([]byte, tunMTU)
+		pktBuf    = make([]byte, tun.MTU)
 	)
 
 	for {
@@ -33,7 +35,7 @@ func TunToVsock(from io.Reader, to io.WriteCloser, ch chan error, wg *sync.WaitG
 		if nr > 0 {
 			// Forward the network packet to our TCP-over-VSOCK connection.
 			binary.BigEndian.PutUint16(pktLenBuf, uint16(nr))
-			if _, werr := to.Write(append(pktLenBuf, pktBuf[:nr]...)); err != nil {
+			if _, werr := to.Write(append(pktLenBuf, pktBuf[:nr]...)); werr != nil {
 				err = werr
 				break
 			}
@@ -46,18 +48,23 @@ func TunToVsock(from io.Reader, to io.WriteCloser, ch chan error, wg *sync.WaitG
 	ch <- fmt.Errorf("stopped tun-to-vsock forwarding: %w", err)
 }
 
-// VsockToTun forwards network packets from our TCP-over-VSOCK connection to
+// VSOCKToTun forwards network packets from our TCP-over-VSOCK connection to
 // the tun interface. The function keeps on forwarding packets until we
 // encounter an error or EOF. Errors (including EOF) are written to the given
 // channel.
-func VsockToTun(from io.Reader, to io.WriteCloser, ch chan error, wg *sync.WaitGroup) {
+func VSOCKToTun(
+	from io.ReadCloser,
+	to io.WriteCloser,
+	ch chan error,
+	wg *sync.WaitGroup,
+) {
 	defer to.Close()
 	defer wg.Done()
 	var (
 		err       error
 		pktLen    uint16
 		pktLenBuf = make([]byte, lenBufSize)
-		pktBuf    = make([]byte, tunMTU)
+		pktBuf    = make([]byte, tun.MTU)
 	)
 
 	for {
