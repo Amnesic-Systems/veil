@@ -7,9 +7,10 @@ veil_proxy_dir  = cmd/veil-proxy
 godeps          = go.mod go.sum \
                   $(shell find cmd internal -name "*.go" -type f)
 
-image_tag  = veil
-image_tar := $(image_tag).tar
-image_eif := $(image_tag).eif
+image_tag        = veil
+image_dockerfile = docker/Dockerfile
+image_tar       := $(image_tag).tar
+image_eif       := $(image_tag).eif
 
 cover_out = cover.out
 cover_html = cover.html
@@ -26,11 +27,11 @@ lint: $(godeps)
 test: $(godeps)
 	go test -race -cover ./...
 
-$(image_tar): $(godeps) docker/Dockerfile-unit-test
+$(image_tar): $(godeps) $(image_dockerfile)
 	@echo "Building $(image_tar)..."
 	@docker run --volume $(PWD):/workspace \
 		gcr.io/kaniko-project/executor:v1.9.2 \
-		--dockerfile docker/Dockerfile-unit-test \
+		--dockerfile $(image_dockerfile) \
 		--reproducible \
 		--no-push \
 		--verbosity warn \
