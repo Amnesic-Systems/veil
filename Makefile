@@ -5,7 +5,7 @@ veil_verify_dir = cmd/veil-verify
 veil_proxy      = cmd/veil-proxy/veil-proxy
 veil_proxy_dir  = cmd/veil-proxy
 godeps          = go.mod go.sum \
-                  $(shell find cmd internal -name "*.go" -type f)
+                  $(shell find cmd internal vendor -name "*.go" -type f)
 
 image_tag        = veil
 image_dockerfile = docker/Dockerfile
