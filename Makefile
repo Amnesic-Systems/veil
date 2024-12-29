@@ -1,9 +1,6 @@
 veil            = cmd/veil/veil
-veil_dir        = cmd/veil
 veil_verify     = cmd/veil-verify/veil-verify
-veil_verify_dir = cmd/veil-verify
 veil_proxy      = cmd/veil-proxy/veil-proxy
-veil_proxy_dir  = cmd/veil-proxy
 godeps          = go.mod go.sum \
                   $(shell find cmd internal vendor -name "*.go" -type f)
 
@@ -106,18 +103,18 @@ $(cover_html): $(cover_out)
 
 $(veil): $(godeps)
 	@CGO_ENABLED=0 go build \
-		-C $(veil_dir) \
+		-C $(shell dirname $(veil)) \
 		-trimpath \
 		-ldflags="-s -w" \
 		-buildvcs=false
 	@-sha1sum "$(veil)"
 
 $(veil_verify): $(godeps)
-	@go build -C $(veil_verify_dir)
+	@go build -C $(shell dirname $(veil_verify))
 	@-sha1sum "$(veil_verify)"
 
 $(veil_proxy): $(godeps)
-	@go build -C $(veil_proxy_dir)
+	@go build -C $(shell dirname $(veil_proxy))
 	@-sha1sum "$(veil_proxy)"
 
 .PHONY: clean
