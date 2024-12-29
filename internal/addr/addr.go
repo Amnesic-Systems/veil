@@ -1,3 +1,4 @@
+// Package addr implements helper functions for dealing with pointers.
 package addr
 
 // Of returns a pointer to the given value.
