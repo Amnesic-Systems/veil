@@ -1,3 +1,4 @@
+// Package httpx implements utility functions related to HTTP.
 package httpx
 
 import (

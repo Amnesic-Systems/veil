@@ -1,3 +1,5 @@
+// Package nonce implements a nonce type and its corresponding utility
+// functions.
 package nonce
 
 import (
@@ -27,10 +29,12 @@ func (n *Nonce) URLEncode() string {
 	return url.QueryEscape(n.B64())
 }
 
+// B64 returns a Base64-encoded string representation of the nonce.
 func (n *Nonce) B64() string {
 	return base64.StdEncoding.EncodeToString(n[:])
 }
 
+// ToSlice returns a slice of the nonce.
 func (n *Nonce) ToSlice() []byte {
 	return n[:]
 }

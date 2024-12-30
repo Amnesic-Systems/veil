@@ -1,3 +1,5 @@
+// Package httperr implements an `Error` type that contains error messages that
+// handlers send back to the client.
 package httperr
 
 import (

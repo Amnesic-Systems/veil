@@ -1,3 +1,5 @@
+// Package nat provides functions to enable and disable iptables forwarding
+// rules for veil-proxy.
 package nat
 
 import (

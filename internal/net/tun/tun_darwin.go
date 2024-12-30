@@ -1,17 +1,16 @@
 package tun
 
 import (
+	"errors"
 	"os"
 )
 
-// veil-proxy does not support macOS but we can at least make it compile by
-// implementing the following functions.
-const err = "not implemented on darwin"
+var errNotImplemented = errors.New("not implemented on darwin")
 
 func SetupTunAsProxy() (*os.File, error) {
-	panic(err)
+	return nil, errNotImplemented
 }
 
 func SetupTunAsEnclave() (*os.File, error) {
-	panic(err)
+	return nil, errNotImplemented
 }
