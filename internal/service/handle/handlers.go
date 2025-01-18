@@ -18,12 +18,12 @@ import (
 
 // Index informs the visitor that this host runs inside an enclave. This is
 // useful for testing.
-func Index(cfg *config.Veil) http.HandlerFunc {
+func Index(enclaveCodeURI string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		page := "This host runs inside an AWS Nitro Enclave."
-		if cfg.EnclaveCodeURI != "" {
+		if enclaveCodeURI != "" {
 			page += fmt.Sprintf("\nThe application's source code is available at: %s.",
-				cfg.EnclaveCodeURI)
+				enclaveCodeURI)
 		}
 		fmt.Fprintln(w, page)
 	}

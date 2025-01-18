@@ -33,7 +33,7 @@ func addExternalPublicRoutes(
 ) {
 	setupMiddlewares(r, cfg)
 
-	r.Get(PathIndex, handle.Index(cfg))
+	r.Get(PathIndex, handle.Index(cfg.EnclaveCodeURI))
 	r.Get(PathConfig, handle.Config(builder, cfg))
 	r.Get(PathAttestation, handle.Attestation(builder))
 
