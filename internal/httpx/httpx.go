@@ -6,12 +6,14 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
+	"crypto/sha256"
 	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/base64"
 	"encoding/pem"
 	"errors"
+	"fmt"
 	"log"
 	"math/big"
 	"net/http"
@@ -111,6 +113,33 @@ func WaitForSvc(
 		}
 		time.Sleep(10 * time.Millisecond)
 	}
+}
+
+// GetCertHash returns the SHA-256 fingerprint of the given certificate.
+// Notably, the fingerprint is the same as the one displayed by browsers when
+// clicking on the "Details" button of a site's certificate.
+func GetCertHash(rawCert []byte) (hash [sha256.Size]byte, err error) {
+	defer errs.Wrap(&err, "failed to get fingerprint")
+
+	// Decode the PEM certificate. We expect a single PEM block of type
+	// "CERTIFICATE".
+	block, rest := pem.Decode(rawCert)
+	if block == nil {
+		return hash, errors.New("no PEM data found")
+	}
+	if len(rest) > 0 {
+		return hash, errors.New("unexpected extra PEM data")
+	}
+	if block.Type != "CERTIFICATE" {
+		return hash, fmt.Errorf("expected type CERTIFICATE but got %s", block.Type)
+	}
+
+	// Parse the certificate and hash its raw bytes.
+	cert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		return hash, err
+	}
+	return sha256.Sum256(cert.Raw), nil
 }
 
 // CreateCertificate creates a self-signed certificate and returns the
