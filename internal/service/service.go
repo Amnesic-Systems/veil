@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"crypto/sha256"
 	"crypto/tls"
 	"errors"
 	"fmt"
@@ -39,15 +38,20 @@ func Run(
 		log.Fatalf("Failed to set up system: %v", err)
 	}
 
-	// Create a TLS certificate for the external Web server.
+	// Create a TLS certificate for the external Web server and determine its
+	// certificate hash.
 	cert, key, err := httpx.CreateCertificate(cfg.FQDN)
 	if err != nil {
 		log.Fatalf("Failed to create certificate: %v", err)
 	}
+	hash, err := httpx.GetCertHash(cert)
+	if err != nil {
+		log.Fatalf("Failed to get certificate hash: %v", err)
+	}
 
 	// Initialize hashes for the attestation document.
 	hashes := new(attestation.Hashes)
-	hashes.SetTLSHash(addr.Of(sha256.Sum256(cert)))
+	hashes.SetTLSHash(addr.Of(hash))
 
 	// Initialize Web servers.
 	intSrv := newIntSrv(cfg, hashes, appReady)
