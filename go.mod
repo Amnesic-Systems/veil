@@ -14,8 +14,8 @@ require (
 	github.com/moby/term v0.5.0
 	github.com/opencontainers/image-spec v1.1.0
 	github.com/stretchr/testify v1.9.0
-	golang.org/x/net v0.33.0
-	golang.org/x/sys v0.28.0
+	golang.org/x/net v0.37.0
+	golang.org/x/sys v0.31.0
 )
 
 require (
