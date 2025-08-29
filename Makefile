@@ -1,4 +1,4 @@
-veil            = cmd/veil/veil
+veil_daemon     = cmd/veil-daemon/veil-daemon
 veil_verify     = cmd/veil-verify/veil-verify
 veil_proxy      = cmd/veil-proxy/veil-proxy
 godeps          = go.mod go.sum \
@@ -17,7 +17,7 @@ image_test_eif       := $(image_test_tag).eif
 cover_out  = cover.out
 cover_html = cover.html
 
-all: $(veil) $(veil_verify) $(veil_proxy)
+all: $(veil_daemon) $(veil_verify) $(veil_proxy)
 
 .PHONY: lint
 lint: $(godeps)
@@ -101,13 +101,13 @@ $(cover_out): $(godeps)
 $(cover_html): $(cover_out)
 	go tool cover -html=$(cover_out) -o $(cover_html)
 
-$(veil): $(godeps)
+$(veil_daemon): $(godeps)
 	@CGO_ENABLED=0 go build \
-		-C $(shell dirname $(veil)) \
+		-C $(shell dirname $(veil_daemon)) \
 		-trimpath \
 		-ldflags="-s -w" \
 		-buildvcs=false
-	@-sha1sum "$(veil)"
+	@-sha1sum "$(veil_daemon)"
 
 $(veil_verify): $(godeps)
 	@go build -C $(shell dirname $(veil_verify))
@@ -119,6 +119,6 @@ $(veil_proxy): $(godeps)
 
 .PHONY: clean
 clean:
-	@rm -f $(veil) $(veil_verify) $(veil_proxy)
+	@rm -f $(veil_daemon) $(veil_verify) $(veil_proxy)
 	@rm -f $(cover_out) $(cover_html)
 	@rm -f $(image_tar) $(image_eif) $(image_test_tar) $(image_test_eif)
