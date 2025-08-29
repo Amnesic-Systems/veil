@@ -13,6 +13,6 @@ RUN make
 
 FROM scratch
 
-COPY --from=builder /app/cmd/veil/veil /
+COPY --from=builder /app/cmd/veil-daemon/veil-daemon /
 
-CMD ["/veil", "-enclave-code-uri", "https://github.com/Amnesic-Systems/veil"]
+CMD ["/veil-daemon", "-enclave-code-uri", "https://github.com/Amnesic-Systems/veil"]

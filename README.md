@@ -16,10 +16,10 @@ make
 
 Conceptually, there are three components:
 
-1. `veil` (in cmd/veil/veil) implements a service that runs inside the AWS Nitro
-   Enclave alongside your application. This service is responsible for
-   establishing a network tunnel to the outside world, remote attestation, and
-   it provides a REST API for your application to use.
+1. `veil-daemon` (in cmd/veil-daemon/veil-daemon) implements a service that runs
+   inside the AWS Nitro Enclave alongside your application. This service is
+   responsible for establishing a network tunnel to the outside world, remote
+   attestation, and it provides a REST API for your application to use.
 
 1. `veil-proxy` (in cmd/veil-proxy/veil-proxy) runs on the EC2 host that
    contains the enclave. It helps `veil` use the Internet seamlessly by
