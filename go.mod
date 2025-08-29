@@ -7,15 +7,15 @@ require (
 	github.com/docker/docker v27.3.1+incompatible
 	github.com/fatih/color v1.18.0
 	github.com/fxamacker/cbor/v2 v2.7.0
-	github.com/go-chi/chi/v5 v5.1.0
+	github.com/go-chi/chi/v5 v5.2.2
 	github.com/hf/nsm v0.0.0-20220930140112-cd181bd646b9
 	github.com/mdlayher/vsock v1.2.1
 	github.com/milosgajdos/tenus v0.0.3
 	github.com/moby/term v0.5.0
 	github.com/opencontainers/image-spec v1.1.0
 	github.com/stretchr/testify v1.9.0
-	golang.org/x/net v0.37.0
-	golang.org/x/sys v0.31.0
+	golang.org/x/net v0.43.0
+	golang.org/x/sys v0.35.0
 )
 
 require (
