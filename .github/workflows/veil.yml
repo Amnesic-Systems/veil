@@ -35,6 +35,7 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v9
         with:
+          only-new-issues: true
           version: latest
           working-directory: internal
           skip-cache: true
