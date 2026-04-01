@@ -29,5 +29,5 @@ Conceptually, there are three components:
    making sure that it runs a copy of the given source code.
 
 The repository
-[veil-examples](https://github.com/sriharsh/veil-examples)
+[veil-examples](https://github.com/Amnesic-Systems/veil-examples)
 contains examples of using Veil to build networked services.
