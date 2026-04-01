@@ -182,7 +182,7 @@ func loadEnclaveImage(
 	defer func() { _ = file.Close() }()
 
 	// Load the tar image.
-	reader, err := cli.ImageLoad(ctx, file, false)
+	reader, err := cli.ImageLoad(ctx, file)
 	if err != nil {
 		return errs.Add(err, "failed to load image")
 	}
