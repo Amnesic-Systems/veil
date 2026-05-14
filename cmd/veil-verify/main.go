@@ -9,7 +9,7 @@ import (
 	"os"
 	"os/signal"
 
-	"github.com/docker/docker/client"
+	"github.com/moby/moby/client"
 
 	"github.com/Amnesic-Systems/veil/internal/config"
 	"github.com/Amnesic-Systems/veil/internal/errs"
@@ -80,7 +80,7 @@ func run(ctx context.Context, out io.Writer, args []string) error {
 	}
 
 	// Create a new Docker client to interact with the Docker daemon.
-	cli, err := client.NewClientWithOpts(client.FromEnv)
+	cli, err := client.New(client.FromEnv)
 	if err != nil {
 		// The Docker API errors are poor, so we wrap them in an attempt to
 		// provide useful context.
