@@ -5,26 +5,24 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"log"
 	"os"
 	"path"
+	"strings"
 
 	"github.com/Amnesic-Systems/veil/internal/addr"
 	"github.com/Amnesic-Systems/veil/internal/config"
 	"github.com/Amnesic-Systems/veil/internal/enclave"
 	"github.com/Amnesic-Systems/veil/internal/errs"
-	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/image"
-	"github.com/docker/docker/api/types/mount"
-	"github.com/docker/docker/api/types/network"
-	"github.com/docker/docker/client"
-	"github.com/docker/docker/pkg/jsonmessage"
 	"github.com/fatih/color"
-	"github.com/moby/term"
+	"github.com/moby/moby/api/types/container"
+	"github.com/moby/moby/api/types/mount"
+	"github.com/moby/moby/api/types/network"
+	"github.com/moby/moby/client"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 )
 
@@ -39,14 +37,14 @@ func removeContainer(cli *client.Client, id string) {
 	// Create a new context because the original context may have been
 	// cancelled.
 	ctx := context.Background()
-	if err := cli.ContainerStop(ctx, id, container.StopOptions{
+	if _, err := cli.ContainerStop(ctx, id, client.ContainerStopOptions{
 		Timeout: addr.Of(0),
 	}); err != nil {
 		log.Printf("Failed to stop container %s: %v", id, err)
 		return
 	}
 
-	if err := cli.ContainerRemove(ctx, id, container.RemoveOptions{
+	if _, err := cli.ContainerRemove(ctx, id, client.ContainerRemoveOptions{
 		Force: true,
 	}); err != nil {
 		log.Printf("Failed to remove container %s: %v", id, err)
@@ -65,7 +63,7 @@ func buildEnclaveImage(
 
 	// Pull the kaniko image, which we use to reproducibly build the
 	// enclave image.
-	output, err := cli.ImagePull(ctx, builderImage, image.PullOptions{})
+	output, err := cli.ImagePull(ctx, builderImage, client.ImagePullOptions{})
 	if err != nil {
 		return errs.Add(err, "failed to pull image")
 	}
@@ -105,13 +103,13 @@ func buildEnclaveImage(
 
 	// Create the container for our builder image.  We are going to remove it
 	// after we're done building the enclave image.
-	resp, err := cli.ContainerCreate(ctx,
-		containerConfig,
-		hostConfig,
-		&network.NetworkingConfig{},
-		&v1.Platform{},
-		builderContainer,
-	)
+	resp, err := cli.ContainerCreate(ctx, client.ContainerCreateOptions{
+		Config:           containerConfig,
+		HostConfig:       hostConfig,
+		NetworkingConfig: &network.NetworkingConfig{},
+		Platform:         &v1.Platform{},
+		Name:             builderContainer,
+	})
 	if err != nil {
 		return errs.Add(err, "failed to create container")
 	}
@@ -119,13 +117,13 @@ func buildEnclaveImage(
 	log.Print("Created builder container.")
 
 	// Start the container.  A build will take a minute or so to complete.
-	if err := cli.ContainerStart(ctx, resp.ID, container.StartOptions{}); err != nil {
+	if _, err := cli.ContainerStart(ctx, resp.ID, client.ContainerStartOptions{}); err != nil {
 		return errs.Add(err, "failed to start container")
 	}
 	log.Print("Started builder container.")
 
 	// If we need verbose logs, request and print the container's logs.
-	options := container.LogsOptions{
+	options := client.ContainerLogsOptions{
 		ShowStdout: true,
 		ShowStderr: true,
 		Follow:     true,
@@ -148,12 +146,16 @@ func getContainerExitCode(
 	containerID string,
 ) error {
 	// Inspect the container to get its state.
-	containerJSON, err := cli.ContainerInspect(ctx, containerID)
+	inspection, err := cli.ContainerInspect(ctx, containerID, client.ContainerInspectOptions{})
 	if err != nil {
 		return errs.Add(err, "failed to inspect container")
 	}
+	containerJSON := inspection.Container
 
 	// Check if the container has stopped.
+	if containerJSON.State == nil {
+		return errors.New("container state is missing")
+	}
 	if containerJSON.State.Running {
 		return errors.New("container is still running")
 	}
@@ -186,9 +188,9 @@ func loadEnclaveImage(
 	if err != nil {
 		return errs.Add(err, "failed to load image")
 	}
-	defer close(reader.Body)
+	defer close(reader)
 
-	return printDockerLogs(reader.Body, verbose)
+	return printDockerLogs(reader, verbose)
 }
 
 func buildCompilerImage(
@@ -228,11 +230,14 @@ CMD ["bash", "-c", "nitro-cli build-enclave --docker-uri enclave:latest --output
 	}
 
 	// Finally, build the compiler image.
-	opts := types.ImageBuildOptions{
+	opts := client.ImageBuildOptions{
 		Tags:       []string{compilerImage},
 		Dockerfile: "Dockerfile",
 		Remove:     true, // Clean up intermediate images.
-		Platform:   "linux/amd64",
+		Platforms: []v1.Platform{{
+			Architecture: "amd64",
+			OS:           "linux",
+		}},
 	}
 	resp, err := cli.ImageBuild(ctx, &buf, opts)
 	if err != nil {
@@ -271,16 +276,16 @@ func compileEnclaveImage(
 	}
 	// Create the container for our builder image.  It's ephemeral, so we are
 	// going to remove it after we've obtained the PCR values.
-	resp, err := cli.ContainerCreate(ctx,
-		containerConfig,
-		hostConfig,
-		&network.NetworkingConfig{},
-		&v1.Platform{
+	resp, err := cli.ContainerCreate(ctx, client.ContainerCreateOptions{
+		Config:           containerConfig,
+		HostConfig:       hostConfig,
+		NetworkingConfig: &network.NetworkingConfig{},
+		Platform: &v1.Platform{
 			Architecture: "amd64",
 			OS:           "linux",
 		},
-		compilerImage,
-	)
+		Name: compilerImage,
+	})
 	if err != nil {
 		return nil, errs.Add(err, "failed to create container")
 	}
@@ -289,7 +294,7 @@ func compileEnclaveImage(
 
 	// Finally, run the container.  The nitro-cli tool will compile the enclave
 	// image and log the PCR values to stdout.
-	if err := cli.ContainerStart(ctx, resp.ID, container.StartOptions{}); err != nil {
+	if _, err := cli.ContainerStart(ctx, resp.ID, client.ContainerStartOptions{}); err != nil {
 		return nil, errs.Add(err, "failed to start container")
 	}
 	log.Print("Started compiler container.")
@@ -304,7 +309,7 @@ func parsePCRsFromLogs(
 ) (enclave.PCR, error) {
 	// Fetch the container's logs.  We are only interested in the PCR values,
 	// which are logged to stdout.
-	options := container.LogsOptions{
+	options := client.ContainerLogsOptions{
 		ShowStdout: true,
 		ShowStderr: true,
 		Follow:     true,
@@ -341,19 +346,65 @@ func printLogs(from io.Reader, to io.Writer) {
 }
 
 func printDockerLogs(from io.Reader, to io.Writer) error {
-	// Instead of writing Docker's logs directly to 'out', we shove them into
-	// printLogs, which prints them in color.  That makes Docker's logs easier
-	// to tell apart from our own logs.
-	r, w := io.Pipe()
-	go printLogs(r, to)
-
-	termFd, isTerm := term.GetFdInfo(os.Stderr)
-	if err := jsonmessage.DisplayJSONMessagesStream(
-		from, w, termFd, isTerm, nil,
-	); err != nil {
-		return errs.Add(err, "error in Docker logs")
+	dec := json.NewDecoder(from)
+	for {
+		var msg dockerLogMessage
+		if err := dec.Decode(&msg); err != nil {
+			if err == io.EOF {
+				return nil
+			}
+			return errs.Add(err, "error decoding Docker logs")
+		}
+		line, err := msg.String()
+		if err != nil {
+			return errs.Add(err, "error in Docker logs")
+		}
+		if line == "" {
+			continue
+		}
+		fmt.Fprintln(to, color.CyanString(line))
 	}
-	return nil
+}
+
+type dockerLogError struct {
+	Message string `json:"message,omitempty"`
+}
+
+func (e *dockerLogError) Error() string {
+	return e.Message
+}
+
+type dockerLogMessage struct {
+	Aux             *json.RawMessage `json:"aux,omitempty"`
+	Error           *dockerLogError  `json:"errorDetail,omitempty"`
+	ErrorMessage    string           `json:"error,omitempty"`
+	ID              string           `json:"id,omitempty"`
+	ProgressMessage string           `json:"progress,omitempty"`
+	Status          string           `json:"status,omitempty"`
+	Stream          string           `json:"stream,omitempty"`
+}
+
+func (m dockerLogMessage) String() (string, error) {
+	if m.Error != nil {
+		return "", m.Error
+	}
+	if m.ErrorMessage != "" {
+		return "", errors.New(m.ErrorMessage)
+	}
+	if m.Stream != "" {
+		return strings.TrimRight(m.Stream, "\r\n"), nil
+	}
+	if m.Status == "" {
+		return "", nil
+	}
+	line := m.Status
+	if m.ID != "" {
+		line = fmt.Sprintf("%s: %s", m.ID, line)
+	}
+	if m.ProgressMessage != "" {
+		line = fmt.Sprintf("%s %s", line, m.ProgressMessage)
+	}
+	return line, nil
 }
 
 func close(reader io.Closer) {
