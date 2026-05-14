@@ -91,7 +91,7 @@ func TestExtractNonce(t *testing.T) {
 			req: &http.Request{
 				URL: must.Get(url.Parse("https://example.com/endpoint?nonce=AAAAAAAAAAAAAA%3D%3D")),
 			},
-			wantErr: errs.InvalidLength,
+			wantErr: errs.ErrInvalidLength,
 		},
 		{
 			name: "valid nonce",

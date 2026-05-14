@@ -62,7 +62,7 @@ func attestEnclave(
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("enclave returned %q with body: %s", resp.Status, string(body))
 	}
@@ -76,7 +76,7 @@ func attestEnclave(
 	// Verify the attestation document, which provides assurance that we are
 	// talking to an enclave.  The nonce provides assurance that we are talking
 	// to an alive enclave (instead of a replayed attestation document).
-	var attester enclave.Attester = nitro.NewAttester()
+	attester := nitro.NewAttester()
 	if cfg.Testing {
 		attester = noop.NewAttester()
 	}

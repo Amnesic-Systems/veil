@@ -7,9 +7,9 @@ import (
 )
 
 var (
-	InvalidFormat = errors.New("invalid format")
-	InvalidLength = errors.New("invalid length")
-	IsNil         = errors.New("argument must not be nil")
+	ErrInvalidFormat = errors.New("invalid format")
+	ErrInvalidLength = errors.New("invalid length")
+	ErrIsNil         = errors.New("argument must not be nil")
 )
 
 // Wrap wraps the given error using the given string and (if provided) string

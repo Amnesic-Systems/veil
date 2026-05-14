@@ -25,7 +25,7 @@ func Index(enclaveCodeURI string) http.HandlerFunc {
 			page += fmt.Sprintf("\nThe application's source code is available at: %s.",
 				enclaveCodeURI)
 		}
-		fmt.Fprintln(w, page)
+		_, _ = fmt.Fprintln(w, page)
 	}
 }
 

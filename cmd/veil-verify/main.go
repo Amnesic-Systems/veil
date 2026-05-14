@@ -86,7 +86,7 @@ func run(ctx context.Context, out io.Writer, args []string) error {
 		// provide useful context.
 		return errs.Add(err, "failed to create Docker client")
 	}
-	defer cli.Close()
+	defer func() { _ = cli.Close() }()
 	log.Print("Created Docker client.")
 
 	// Create a deterministically-built enclave image.  The image is written to

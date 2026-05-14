@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/Amnesic-Systems/veil/internal/config"
-	"github.com/Amnesic-Systems/veil/internal/enclave"
 	"github.com/Amnesic-Systems/veil/internal/enclave/nitro"
 	"github.com/Amnesic-Systems/veil/internal/enclave/noop"
 	"github.com/Amnesic-Systems/veil/internal/errs"
@@ -155,7 +154,7 @@ func run(ctx context.Context, out io.Writer, args []string) (err error) {
 	}
 
 	// Initialize dependencies and start the service.
-	var attester enclave.Attester = nitro.NewAttester()
+	attester := nitro.NewAttester()
 	var tunneler tunnel.Mechanism = tunnel.NewVSOCK()
 	if cfg.Testing {
 		attester = noop.NewAttester()
@@ -214,7 +213,7 @@ func runAppCmd(ctx context.Context, cmdStr string, silence bool) error {
 func forward(from io.Reader, to io.Writer) {
 	s := bufio.NewScanner(from)
 	for s.Scan() {
-		fmt.Fprintln(to, s.Text())
+		_, _ = fmt.Fprintln(to, s.Text())
 	}
 	if err := s.Err(); err != nil {
 		log.Printf("Error reading application output: %v", err)

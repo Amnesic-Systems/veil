@@ -338,10 +338,10 @@ func parsePCRsFromLogs(
 func printLogs(from io.Reader, to io.Writer) {
 	scanner := bufio.NewScanner(from)
 	for scanner.Scan() {
-		fmt.Fprintln(to, color.CyanString(scanner.Text()))
+		_, _ = fmt.Fprintln(to, color.CyanString(scanner.Text()))
 	}
 	if err := scanner.Err(); err != nil {
-		fmt.Fprintln(to, err.Error())
+		_, _ = fmt.Fprintln(to, err.Error())
 	}
 }
 
@@ -362,7 +362,7 @@ func printDockerLogs(from io.Reader, to io.Writer) error {
 		if line == "" {
 			continue
 		}
-		fmt.Fprintln(to, color.CyanString(line))
+		_, _ = fmt.Fprintln(to, color.CyanString(line))
 	}
 }
 

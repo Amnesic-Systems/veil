@@ -22,7 +22,7 @@ func TestFromSlice(t *testing.T) {
 		{
 			name:    "too short",
 			in:      []byte{},
-			wantErr: errs.InvalidLength,
+			wantErr: errs.ErrInvalidLength,
 		},
 		{
 			name: "too long",
