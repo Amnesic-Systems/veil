@@ -56,7 +56,7 @@ func New() (*Nonce, error) {
 func FromSlice(s []byte) (*Nonce, error) {
 	if len(s) < Len {
 		return nil, fmt.Errorf("%w: slice len is %d but need at least %d",
-			errs.InvalidLength, len(s), Len)
+			errs.ErrInvalidLength, len(s), Len)
 	}
 
 	var n Nonce

@@ -180,7 +180,7 @@ func TestPages(t *testing.T) {
 
 			body, err := io.ReadAll(resp.Body)
 			require.NoError(t, err)
-			defer resp.Body.Close()
+			defer func() { _ = resp.Body.Close() }()
 			require.Contains(t, string(body), c.wantBody)
 		})
 	}
@@ -193,7 +193,7 @@ func TestEnclaveCodeURI(t *testing.T) {
 	resp, err := testutil.Client.Get(extSrv(service.PathIndex))
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, resp.StatusCode)
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body := must.Get(io.ReadAll(resp.Body))
 	require.Contains(t, string(body), codeURI)
@@ -249,7 +249,7 @@ func TestReadyHandler(t *testing.T) {
 func TestAttestation(t *testing.T) {
 	defer stopSvc(startSvc(t, withFlags()))
 
-	var attester enclave.Attester = nitro.NewAttester()
+	attester := nitro.NewAttester()
 	if !nitro.IsEnclave() {
 		attester = noop.NewAttester()
 	}
@@ -289,7 +289,7 @@ func TestAttestation(t *testing.T) {
 			// Parse attestation document.
 			body, err := io.ReadAll(resp.Body)
 			require.NoError(t, err)
-			defer resp.Body.Close()
+			defer func() { _ = resp.Body.Close() }()
 			var a enclave.RawDocument
 			require.NoError(t, json.Unmarshal(body, &a))
 
@@ -370,7 +370,7 @@ func TestHashes(t *testing.T) {
 			// Read the response body and extract the hashes.
 			gotBody, err := io.ReadAll(resp.Body)
 			require.NoError(t, err)
-			defer resp.Body.Close()
+			defer func() { _ = resp.Body.Close() }()
 			var gotHashes attestation.Hashes
 			require.NoError(t, json.Unmarshal(gotBody, &gotHashes))
 
@@ -435,9 +435,8 @@ func TestReverseProxy(t *testing.T) {
 }
 
 func TestRunApp(t *testing.T) {
-	fd, err := os.CreateTemp("", "veil-test")
+	fd, err := os.CreateTemp(t.TempDir(), "veil-test")
 	require.NoError(t, err)
-	defer os.Remove(fd.Name())
 
 	cases := []struct {
 		name    string

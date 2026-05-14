@@ -12,7 +12,7 @@ import (
 // GetNonce returns the nonce from the given auxiliary info.
 func GetNonce(aux *enclave.AuxInfo) (*nonce.Nonce, error) {
 	if aux.Nonce == nil {
-		return nil, errs.IsNil
+		return nil, errs.ErrIsNil
 	}
 
 	var n nonce.Nonce
@@ -23,7 +23,7 @@ func GetNonce(aux *enclave.AuxInfo) (*nonce.Nonce, error) {
 // GetSHA256 returns the SHA256 hash from the given auxiliary info.
 func GetSHA256(aux *enclave.AuxInfo) (*[sha256.Size]byte, error) {
 	if aux.UserData == nil {
-		return nil, errs.IsNil
+		return nil, errs.ErrIsNil
 	}
 	sha := [sha256.Size]byte{}
 	copy(sha[:], aux.UserData[:])
@@ -32,7 +32,7 @@ func GetSHA256(aux *enclave.AuxInfo) (*[sha256.Size]byte, error) {
 
 func GetHashes(aux *enclave.AuxInfo) (*Hashes, error) {
 	if aux.PublicKey == nil {
-		return nil, errs.IsNil
+		return nil, errs.ErrIsNil
 	}
 	sanitized := bytes.Trim(aux.PublicKey[:], "\x00") // TODO: smth better?
 	return DeserializeHashes(sanitized)

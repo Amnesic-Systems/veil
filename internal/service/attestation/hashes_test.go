@@ -51,7 +51,7 @@ func TestFailedDeserialization(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			_, err := DeserializeHashes(c.in)
-			require.ErrorIs(t, err, errs.InvalidFormat)
+			require.ErrorIs(t, err, errs.ErrInvalidFormat)
 		})
 	}
 }

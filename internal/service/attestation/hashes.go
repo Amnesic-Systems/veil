@@ -55,7 +55,7 @@ func DeserializeHashes(b []byte) (h *Hashes, err error) {
 	//   sha256:gDH6rnBA5e+dzTDeZv429hmWuYg=;sha256:
 	s := strings.Split(string(b), ";")
 	if len(s) != 2 {
-		return nil, errs.InvalidFormat
+		return nil, errs.ErrInvalidFormat
 	}
 	// Extract the base64-encoded hashes.
 	tlsKeyHash := []byte(strings.TrimPrefix(s[0], "sha256:"))
@@ -68,7 +68,7 @@ func DeserializeHashes(b []byte) (h *Hashes, err error) {
 		h.TlsKeyHash[:],
 		tlsKeyHash,
 	); err != nil {
-		return nil, fmt.Errorf("%w: %w", errs.InvalidFormat, err)
+		return nil, fmt.Errorf("%w: %w", errs.ErrInvalidFormat, err)
 	}
 
 	// If the application hash is unset, we're done.
@@ -81,7 +81,7 @@ func DeserializeHashes(b []byte) (h *Hashes, err error) {
 		h.AppKeyHash[:],
 		appKeyHash,
 	); err != nil {
-		return nil, fmt.Errorf("%w: %w", errs.InvalidFormat, err)
+		return nil, fmt.Errorf("%w: %w", errs.ErrInvalidFormat, err)
 	}
 
 	return h, nil

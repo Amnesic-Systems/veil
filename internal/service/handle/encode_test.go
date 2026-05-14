@@ -83,7 +83,7 @@ func TestEncodeAndAttest(t *testing.T) {
 			require.NoError(t, err)
 
 			// Ensure that the nonce is correct.
-			n, err := nonce.FromSlice(doc.AuxInfo.Nonce)
+			n, err := nonce.FromSlice(doc.Nonce)
 			require.NoError(t, err)
 			require.Equal(t, c.nonce, n)
 		})

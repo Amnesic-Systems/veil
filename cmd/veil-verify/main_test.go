@@ -27,7 +27,7 @@ func TestRun(t *testing.T) {
 	// Set up a test server that returns a dummy attestation.
 	srv := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		fmt.Fprintf(w, `{
+		_, _ = fmt.Fprintf(w, `{
 			"type": "noop",
 			"attestation_document": "e30K"
 		}`) // e30K is Base64 for {}

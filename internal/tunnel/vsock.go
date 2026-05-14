@@ -74,7 +74,7 @@ func setupTunnel(
 	if err != nil {
 		return fmt.Errorf("failed to connect to veil-proxy: %w", err)
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 	log.Println("Established TCP connection with veil-proxy.")
 
 	// Create and configure the tun device.
@@ -82,7 +82,7 @@ func setupTunnel(
 	if err != nil {
 		return fmt.Errorf("failed to set up tun device: %w", err)
 	}
-	defer tun.Close()
+	defer func() { _ = tun.Close() }()
 	log.Println("Set up tun device.")
 
 	// Spawn goroutines that forward traffic and wait for them to finish.

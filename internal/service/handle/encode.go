@@ -66,5 +66,5 @@ func encodeAndAttest[T any](
 	w.Header().Set(attestationHeader, string(b))
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	fmt.Fprintln(w, string(body))
+	_, _ = fmt.Fprintln(w, string(body))
 }

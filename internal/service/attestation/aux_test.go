@@ -32,7 +32,7 @@ func TestGetters(t *testing.T) {
 		{
 			name:    "no fields",
 			aux:     &enclave.AuxInfo{},
-			wantErr: errs.IsNil,
+			wantErr: errs.ErrIsNil,
 		},
 		{
 			name: "all fields, some hashes",

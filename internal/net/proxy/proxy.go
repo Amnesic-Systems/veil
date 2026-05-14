@@ -21,7 +21,7 @@ func TunToVSOCK(
 	ch chan error,
 	wg *sync.WaitGroup,
 ) {
-	defer to.Close()
+	defer func() { _ = to.Close() }()
 	defer wg.Done()
 	var (
 		err       error
@@ -58,7 +58,7 @@ func VSOCKToTun(
 	ch chan error,
 	wg *sync.WaitGroup,
 ) {
-	defer to.Close()
+	defer func() { _ = to.Close() }()
 	defer wg.Done()
 	var (
 		err       error
