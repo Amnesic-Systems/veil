@@ -68,7 +68,9 @@ func Run(
 
 	// Set up the networking tunnel. This function will block until the tunnel
 	// is ready to use.
-	tunnel.New(ctx, mechanism, cfg.VSOCKPort)
+	if err := tunnel.New(ctx, mechanism, cfg.VSOCKPort); err != nil {
+		log.Fatalf("Failed to set up tunnel: %v", err)
+	}
 
 	// Start all Web servers and block until all Web servers have stopped, which
 	// should only happen if the given context is canceled.

@@ -2,7 +2,6 @@ package tunnel
 
 import (
 	"context"
-	"sync"
 )
 
 var (
@@ -11,14 +10,11 @@ var (
 )
 
 type Mechanism interface {
-	// Start starts the tunneling mechanism.  It returns immediately and calls
-	// `Done()` on the given waitgroup after networking is set up.
-	Start(context.Context, *sync.WaitGroup, uint32)
+	// Start starts the tunneling mechanism and blocks until networking is set up
+	// or the context is canceled before setup completes.
+	Start(ctx context.Context, port uint32) error
 }
 
-func New(ctx context.Context, m Mechanism, port uint32) {
-	var wg = new(sync.WaitGroup)
-	wg.Add(1)
-	defer wg.Wait()
-	m.Start(ctx, wg, port)
+func New(ctx context.Context, m Mechanism, port uint32) error {
+	return m.Start(ctx, port)
 }

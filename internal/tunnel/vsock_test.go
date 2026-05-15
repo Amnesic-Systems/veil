@@ -2,19 +2,14 @@ package tunnel
 
 import (
 	"context"
-	"sync"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestVsockTunneler(t *testing.T) {
-	var (
-		tunnel = NewVSOCK()
-		ctx    = context.Background()
-		wg     = new(sync.WaitGroup)
-	)
-	wg.Add(1)
-	defer wg.Wait()
-	defer ctx.Done()
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
 
-	tunnel.Start(ctx, wg, 0)
+	require.ErrorIs(t, NewVSOCK().Start(ctx, 0), context.Canceled)
 }
