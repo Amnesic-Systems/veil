@@ -1,15 +1,19 @@
 package main
 
 import (
+	"context"
 	"flag"
+	"fmt"
 	"io"
 	"log"
 	"net"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
+	"os/signal"
 	"sync"
 
+	"github.com/Amnesic-Systems/veil/internal/backoff"
 	"github.com/Amnesic-Systems/veil/internal/config"
 	"github.com/Amnesic-Systems/veil/internal/errs"
 	"github.com/Amnesic-Systems/veil/internal/net/nat"
@@ -58,7 +62,7 @@ func listenVSOCK(port uint32) (_ net.Listener, err error) {
 	return vsock.ListenContextID(cid, port, nil)
 }
 
-func acceptLoop(ln net.Listener) {
+func acceptLoop(ctx context.Context, ln net.Listener) {
 	// Print errors that occur while forwarding packets.
 	ch := make(chan error)
 	defer close(ch)
@@ -68,34 +72,50 @@ func acceptLoop(ln net.Listener) {
 		}
 	}(ch)
 
+	timer := backoff.NewTimer()
 	// Listen for connections from the enclave and begin forwarding packets
 	// once a new connection is established. At any given point, we only expect
 	// to have a single TCP-over-VSOCK connection with the enclave.
 	for {
-		tunDev, err := tun.SetupTunAsProxy()
-		if err != nil {
-			log.Printf("Error creating tun device: %v", err)
-			continue
-		}
-		log.Print("Created tun device.")
+		if err := func() error { // Use a function so we can use defer below.
+			log.Println("Waiting for new connection from enclave.")
+			vm, err := ln.Accept()
+			if err != nil {
+				return fmt.Errorf("failed to accept connection: %w", err)
+			}
+			defer func() { _ = vm.Close() }()
+			log.Printf("Accepted new connection from %s.", vm.RemoteAddr())
 
-		log.Println("Waiting for new connection from enclave.")
-		vm, err := ln.Accept()
-		if err != nil {
-			log.Printf("Error accepting connection: %v", err)
-			continue
-		}
-		log.Printf("Accepted new connection from %s.", vm.RemoteAddr())
+			tunDev, err := tun.SetupTunAsProxy()
+			if err != nil {
+				return fmt.Errorf("failed to create tun device: %w", err)
+			}
+			defer func() { _ = tunDev.Close() }()
+			log.Print("Created tun device.")
 
-		var wg sync.WaitGroup
-		wg.Add(2)
-		go proxy.VSOCKToTun(vm, tunDev, ch, &wg)
-		go proxy.TunToVSOCK(tunDev, vm, ch, &wg)
-		wg.Wait()
+			var wg sync.WaitGroup
+			wg.Add(2)
+			go proxy.VSOCKToTun(vm, tunDev, ch, &wg)
+			go proxy.TunToVSOCK(tunDev, vm, ch, &wg)
+			wg.Wait()
+
+			return nil
+		}(); err != nil {
+			if ctx.Err() != nil {
+				return // Main context is done; time to exit.
+			}
+			log.Printf("Failed to set up tunnel: %v", err)
+			timer.Sleep(ctx)
+		} else {
+			timer.Reset()
+		}
 	}
 }
 
-func run(out io.Writer, args []string) (origErr error) {
+func run(ctx context.Context, out io.Writer, args []string) (origErr error) {
+	ctx, cancel := signal.NotifyContext(ctx, os.Interrupt)
+	defer cancel()
+
 	cfg, err := parseFlags(out, args)
 	if err != nil {
 		return err
@@ -117,8 +137,9 @@ func run(out io.Writer, args []string) (origErr error) {
 	if err != nil {
 		return err
 	}
-	defer func() {
-		errs.Join(&origErr, errs.Add(ln.Close(), "failed to close listener"))
+	go func() {
+		<-ctx.Done()
+		_ = ln.Close()
 	}()
 
 	// If desired, set up a Web server for the profiler.
@@ -135,12 +156,12 @@ func run(out io.Writer, args []string) (origErr error) {
 
 	// Accept new connections from the VSOCK listener and begin forwarding
 	// packets.
-	acceptLoop(ln)
+	acceptLoop(ctx, ln)
 	return nil
 }
 
 func main() {
-	if err := run(os.Stdout, os.Args[1:]); err != nil {
+	if err := run(context.Background(), os.Stdout, os.Args[1:]); err != nil {
 		log.Fatalf("Failed to run proxy: %v", err)
 	}
 }

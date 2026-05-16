@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"log"
 	"sync"
-	"time"
 
+	"github.com/Amnesic-Systems/veil/internal/backoff"
 	"github.com/Amnesic-Systems/veil/internal/errs"
 	"github.com/Amnesic-Systems/veil/internal/net/proxy"
 	"github.com/Amnesic-Systems/veil/internal/net/tun"
@@ -18,18 +18,16 @@ const (
 	// EC2 instance. According to AWS docs, it is always 3:
 	// https://docs.aws.amazon.com/enclaves/latest/user/nitro-enclave-concepts.html
 	proxyCID         = 3
-	minBackoff       = time.Second
-	maxBackoff       = time.Second * 10
 	DefaultVSOCKPort = 1024
 )
 
 type VsockTunneler struct {
-	backoff time.Duration
+	timer *backoff.Timer
 }
 
 func NewVSOCK() *VsockTunneler {
 	return &VsockTunneler{
-		backoff: minBackoff,
+		timer: backoff.NewTimer(),
 	}
 }
 
@@ -49,21 +47,12 @@ func (v *VsockTunneler) Start(
 				return
 			}
 
-			if err = setupTunnel(ctx, &v.backoff, port, func() {
+			if err = setupTunnel(ctx, v.timer, port, func() {
 				ready.Do(func() { close(readyCh) })
 			}); err != nil {
 				log.Printf("Error: %v", err)
 			}
-
-			select {
-			case <-ctx.Done():
-				return
-			case <-time.After(v.backoff):
-			}
-			v.backoff = v.backoff * 2
-			if v.backoff > maxBackoff {
-				v.backoff = maxBackoff
-			}
+			v.timer.Sleep(ctx)
 		}
 	}()
 
@@ -80,7 +69,7 @@ func (v *VsockTunneler) Start(
 // torn down.
 func setupTunnel(
 	ctx context.Context,
-	backoff *time.Duration,
+	timer *backoff.Timer,
 	port uint32,
 	ready func(),
 ) (err error) {
@@ -115,7 +104,7 @@ func setupTunnel(
 	ready()
 
 	// Reset the backoff interval.
-	*backoff = minBackoff
+	timer.Reset()
 
 	select {
 	// Return the first error that occurs.
