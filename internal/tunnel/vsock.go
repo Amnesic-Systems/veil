@@ -35,24 +35,44 @@ func NewVSOCK() *VsockTunneler {
 
 func (v *VsockTunneler) Start(
 	ctx context.Context,
-	wg *sync.WaitGroup,
 	port uint32,
-) {
-	defer wg.Done()
+) error {
+	readyCh := make(chan struct{})
+	var ready sync.Once
 
 	go func() {
+		defer ready.Do(func() { close(readyCh) })
+
 		var err error
 		for {
-			if err = setupTunnel(ctx, &v.backoff, port); err != nil {
+			if ctx.Err() != nil {
+				return
+			}
+
+			if err = setupTunnel(ctx, &v.backoff, port, func() {
+				ready.Do(func() { close(readyCh) })
+			}); err != nil {
 				log.Printf("Error: %v", err)
 			}
-			time.Sleep(v.backoff)
+
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(v.backoff):
+			}
 			v.backoff = v.backoff * 2
 			if v.backoff > maxBackoff {
 				v.backoff = maxBackoff
 			}
 		}
 	}()
+
+	select {
+	case <-readyCh:
+		return ctx.Err()
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 }
 
 // setupTunnel establishes a tunnel between the enclave and the parent EC2 and
@@ -62,11 +82,12 @@ func setupTunnel(
 	ctx context.Context,
 	backoff *time.Duration,
 	port uint32,
+	ready func(),
 ) (err error) {
 	defer errs.Wrap(&err, "tunnel failed")
 	var (
 		wg    sync.WaitGroup
-		errCh = make(chan error, 1)
+		errCh = make(chan error, 2)
 	)
 
 	// Establish TCP-over-VSOCK connection with veil-proxy.
@@ -91,6 +112,7 @@ func setupTunnel(
 	go proxy.VSOCKToTun(conn, tun, errCh, &wg)
 	go proxy.TunToVSOCK(tun, conn, errCh, &wg)
 	log.Println("Started goroutines to forward traffic.")
+	ready()
 
 	// Reset the backoff interval.
 	*backoff = minBackoff
