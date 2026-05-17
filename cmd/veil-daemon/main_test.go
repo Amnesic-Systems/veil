@@ -205,6 +205,7 @@ func TestReadyHandler(t *testing.T) {
 	cases := []struct {
 		name     string
 		url      string
+		wait     bool
 		wantCode int
 		wantErr  error
 	}{
@@ -228,6 +229,7 @@ func TestReadyHandler(t *testing.T) {
 		{
 			name:     "2nd attempt public",
 			url:      extSrv(service.PathIndex),
+			wait:     true,
 			wantCode: http.StatusOK,
 			wantErr:  nil,
 		},
@@ -235,12 +237,24 @@ func TestReadyHandler(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
+			if c.wait {
+				deadline, cancel := context.WithDeadline(
+					t.Context(),
+					time.Now().Add(100*time.Millisecond),
+				)
+				defer cancel()
+				require.NoError(t,
+					httpx.WaitForSvc(deadline, httpx.NewUnauthClient(), c.url),
+				)
+			}
+
 			resp, err := testutil.Client.Get(c.url)
 			if c.wantErr != nil {
 				require.ErrorIs(t, err, c.wantErr)
 				return
 			}
 			require.NoError(t, err)
+			defer func() { assert.NoError(t, resp.Body.Close()) }()
 			require.Equal(t, c.wantCode, resp.StatusCode)
 		})
 	}
