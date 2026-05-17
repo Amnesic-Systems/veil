@@ -104,7 +104,9 @@ func WaitForSvc(
 
 	for {
 		log.Print("Making request to service...")
-		if _, err := client.Do(req); err == nil {
+		resp, err := client.Do(req)
+		if err == nil {
+			_ = resp.Body.Close()
 			log.Print("Service is ready.")
 			return nil
 		}
