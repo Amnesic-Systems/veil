@@ -1,22 +1,41 @@
-// Package nat provides functions to enable and disable iptables forwarding
-// rules for veil-proxy.
+// Package nat provides functions to enable and disable host forwarding for
+// veil-proxy.
 package nat
 
 import (
+	"errors"
+	"fmt"
+	"os"
+	"strings"
+	"sync"
+
 	"github.com/coreos/go-iptables/iptables"
 
 	"github.com/Amnesic-Systems/veil/internal/net/tun"
 )
 
-// Enable enables our iptables NAT rules, which connect the enclave to the
-// Internet.
+var (
+	ipForwardPath    = "/proc/sys/net/ipv4/ip_forward"
+	ipForwardMu      sync.Mutex
+	restoreIPForward *string
+)
+
+// Enable enables IP forwarding and our iptables NAT rules, which connect the
+// enclave to the Internet.
 func Enable() error {
-	return applyRules(true)
+	if err := applyRules(true); err != nil {
+		return err
+	}
+	if err := enableIPForwarding(); err != nil {
+		return errors.Join(err, applyRules(false))
+	}
+	return nil
 }
 
-// Disable disables our iptables NAT rules.
+// Disable disables our iptables NAT rules and restores the prior IP forwarding
+// state if Enable changed it.
 func Disable() error {
-	return applyRules(false)
+	return errors.Join(applyRules(false), restorePriorIPForwarding())
 }
 
 func applyRules(toggle bool) error {
@@ -43,5 +62,43 @@ func applyRules(toggle bool) error {
 		}
 	}
 
+	return nil
+}
+
+func enableIPForwarding() error {
+	ipForwardMu.Lock()
+	defer ipForwardMu.Unlock()
+
+	content, err := os.ReadFile(ipForwardPath)
+	if err != nil {
+		return fmt.Errorf("failed to read %s: %w", ipForwardPath, err)
+	}
+
+	current := strings.TrimSpace(string(content))
+	if current == "1" {
+		return nil
+	}
+
+	if err := os.WriteFile(ipForwardPath, []byte("1\n"), 0644); err != nil {
+		return fmt.Errorf("failed to write %s: %w", ipForwardPath, err)
+	}
+	if restoreIPForward == nil {
+		restoreIPForward = &current
+	}
+	return nil
+}
+
+func restorePriorIPForwarding() error {
+	ipForwardMu.Lock()
+	defer ipForwardMu.Unlock()
+
+	if restoreIPForward == nil {
+		return nil
+	}
+
+	if err := os.WriteFile(ipForwardPath, []byte(*restoreIPForward+"\n"), 0644); err != nil {
+		return fmt.Errorf("failed to restore %s: %w", ipForwardPath, err)
+	}
+	restoreIPForward = nil
 	return nil
 }
