@@ -99,7 +99,7 @@ func setupSystem(cfg *config.Veil) (err error) {
 		return nil
 	}
 
-	if err := system.SetResolver(cfg.Resolver); err != nil {
+	if err := system.SetResolver(cfg.Resolver, cfg.SearchDomains, cfg.NDots); err != nil {
 		return err
 	}
 

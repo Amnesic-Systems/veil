@@ -145,6 +145,29 @@ func TestHelp(t *testing.T) {
 	)
 }
 
+func TestParseDNSFlags(t *testing.T) {
+	cfg, err := parseFlags(io.Discard, []string{
+		"-dns-search", "svc.cluster.local,ec2.internal example.com",
+		"-dns-ndots", "2",
+	})
+	require.NoError(t, err)
+	require.Equal(t, []string{
+		"svc.cluster.local",
+		"ec2.internal",
+		"example.com",
+	}, cfg.SearchDomains)
+	require.NotNil(t, cfg.NDots)
+	require.Equal(t, 2, *cfg.NDots)
+}
+
+func TestParseDefaultDNSFlags(t *testing.T) {
+	cfg, err := parseFlags(io.Discard, nil)
+	require.NoError(t, err)
+	require.Equal(t, defaultDNSResolver, cfg.Resolver)
+	require.Nil(t, cfg.NDots)
+	require.Empty(t, cfg.SearchDomains)
+}
+
 func TestPages(t *testing.T) {
 	defer stopSvc(startSvc(t, withFlags()))
 

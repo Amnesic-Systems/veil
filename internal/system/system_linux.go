@@ -2,7 +2,6 @@ package system
 
 import (
 	"errors"
-	"fmt"
 	"log"
 	"net"
 	"os"
@@ -24,7 +23,7 @@ const (
 	wantRNG   = "nsm-hwrng"
 )
 
-func SetResolver(resolver string) (err error) {
+func SetResolver(resolver string, searchDomains []string, ndots *int) (err error) {
 	defer errs.Wrap(&err, "failed to set DNS resolver")
 	log.Printf("Setting DNS resolver to %s.", resolver)
 
@@ -36,7 +35,7 @@ func SetResolver(resolver string) (err error) {
 		return err
 	}
 
-	c := fmt.Sprintf("nameserver %s\n", resolver)
+	c := renderResolvConf(resolver, searchDomains, ndots)
 	return os.WriteFile(path.Join(dir, "resolv.conf"), []byte(c), 0644)
 }
 
