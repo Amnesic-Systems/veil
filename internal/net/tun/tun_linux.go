@@ -80,9 +80,9 @@ func createTun() (*os.File, error) {
 // sets the link MTU, and may set the default gateway, after which the device
 // is ready for use.
 func configureTun(typ int) error {
-	cidrStr := "10.0.0.1/24"
+	cidrStr := ProxyIP + "/24"
 	if typ == asEnclave {
-		cidrStr = "10.0.0.2/24"
+		cidrStr = EnclaveIP + "/24"
 	}
 
 	link, err := tenus.NewLinkFrom(Name)
@@ -101,7 +101,7 @@ func configureTun(typ int) error {
 	}
 	// Set the enclave's default gateway to the proxy's IP address.
 	if typ == asEnclave {
-		gw := net.ParseIP("10.0.0.1")
+		gw := net.ParseIP(ProxyIP)
 		if err := link.SetLinkDefaultGw(&gw); err != nil {
 			return fmt.Errorf("failed to set default gateway: %w", err)
 		}

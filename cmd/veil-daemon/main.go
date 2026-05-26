@@ -13,6 +13,7 @@ import (
 	"os/signal"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/Amnesic-Systems/veil/internal/config"
 	"github.com/Amnesic-Systems/veil/internal/enclave/nitro"
@@ -25,8 +26,9 @@ import (
 )
 
 const (
-	defaultExtPort = 8443
-	defaultIntPort = 8080
+	defaultExtPort     = 8443
+	defaultIntPort     = 8080
+	defaultDNSResolver = "1.1.1.1"
 )
 
 func parseFlags(out io.Writer, args []string) (*config.Veil, error) {
@@ -69,9 +71,19 @@ func parseFlags(out io.Writer, args []string) (*config.Veil, error) {
 		"internal port",
 	)
 	resolver := fs.String(
-		"resolver",
-		"1.1.1.1",
+		"dns-resolver",
+		defaultDNSResolver,
 		"the DNS resolver used by veil",
+	)
+	search := fs.String(
+		"dns-search",
+		"",
+		"comma- or whitespace-separated search domains to add to resolv.conf",
+	)
+	ndots := fs.Int(
+		"dns-ndots",
+		-1,
+		"ndots option to add to resolv.conf; omitted unless set",
 	)
 	silenceApp := fs.Bool(
 		"silence-app",
@@ -116,13 +128,28 @@ func parseFlags(out io.Writer, args []string) (*config.Veil, error) {
 		ExtPort:        *extPort,
 		FQDN:           *fqdn,
 		IntPort:        *intPort,
+		NDots:          optionalInt(ndots),
 		Resolver:       *resolver,
+		SearchDomains:  splitList(*search),
 		SilenceApp:     *silenceApp,
 		Testing:        *testing,
 		VSOCKPort:      uint32(*vsockPort),
 		WaitForApp:     *waitForApp,
 	}
 	return cfg, validate.Object(cfg)
+}
+
+func optionalInt(v *int) *int {
+	if *v == -1 { // Assume that the flag is unset if it's the default.
+		return nil
+	}
+	return v
+}
+
+func splitList(s string) []string {
+	return strings.FieldsFunc(s, func(r rune) bool {
+		return r == ',' || unicode.IsSpace(r)
+	})
 }
 
 func run(ctx context.Context, out io.Writer, args []string) (err error) {

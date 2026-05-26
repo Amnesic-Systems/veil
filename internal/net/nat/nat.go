@@ -53,6 +53,8 @@ func applyRules(toggle bool) error {
 		{"nat", "POSTROUTING", "-s", "10.0.0.0/24", "-j", "MASQUERADE"},
 		{"filter", "FORWARD", "-i", tun.Name, "-s", "10.0.0.0/24", "-j", "ACCEPT"},
 		{"filter", "FORWARD", "-o", tun.Name, "-d", "10.0.0.0/24", "-j", "ACCEPT"},
+		{"filter", "INPUT", "-i", tun.Name, "-d", tun.ProxyIP, "-p", "udp", "--dport", "53", "-j", "ACCEPT"},
+		{"filter", "INPUT", "-i", tun.Name, "-d", tun.ProxyIP, "-p", "tcp", "--dport", "53", "-j", "ACCEPT"},
 	}
 
 	const table, chain, rulespec = 0, 1, 2

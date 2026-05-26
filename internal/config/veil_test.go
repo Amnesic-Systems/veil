@@ -3,8 +3,10 @@ package config
 import (
 	"testing"
 
-	"github.com/Amnesic-Systems/veil/internal/types/validate"
 	"github.com/stretchr/testify/require"
+
+	"github.com/Amnesic-Systems/veil/internal/addr"
+	"github.com/Amnesic-Systems/veil/internal/types/validate"
 )
 
 func TestVeilConfig(t *testing.T) {
@@ -45,6 +47,16 @@ func TestVeilConfig(t *testing.T) {
 				IntPort:    8080,
 				VSOCKPort:  1024,
 			},
+		},
+		{
+			name: "invalid ndots",
+			cfg: &Veil{
+				ExtPort:   8443,
+				IntPort:   8080,
+				NDots:     addr.Of(16),
+				VSOCKPort: 1024,
+			},
+			wantErrs: 1,
 		},
 	}
 

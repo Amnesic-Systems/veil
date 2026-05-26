@@ -2,6 +2,10 @@ package config
 
 // VeilProxy represents veil-proxy's configuration.
 type VeilProxy struct {
+	// DNSForwarder enables a forwarding DNS resolver on the host side of
+	// veil's TUN interface.
+	DNSForwarder bool
+
 	// Profile can be set to true to enable profiling.
 	Profile bool
 

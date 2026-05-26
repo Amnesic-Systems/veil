@@ -16,6 +16,7 @@ import (
 	"github.com/Amnesic-Systems/veil/internal/backoff"
 	"github.com/Amnesic-Systems/veil/internal/config"
 	"github.com/Amnesic-Systems/veil/internal/errs"
+	"github.com/Amnesic-Systems/veil/internal/net/dns"
 	"github.com/Amnesic-Systems/veil/internal/net/nat"
 	"github.com/Amnesic-Systems/veil/internal/net/proxy"
 	"github.com/Amnesic-Systems/veil/internal/net/tun"
@@ -24,21 +25,30 @@ import (
 	"github.com/mdlayher/vsock"
 )
 
+const hostResolvConf = "/etc/resolv.conf"
+
 func parseFlags(out io.Writer, args []string) (_ *config.VeilProxy, err error) {
 	defer errs.Wrap(&err, "failed to parse flags")
 
 	fs := flag.NewFlagSet("veil-proxy", flag.ContinueOnError)
 	fs.SetOutput(out)
 
+	dnsForwarder := fs.Bool(
+		"dns-forwarder",
+		false,
+		`Enable DNS forwarder on the tun interface. Have veil-daemon use this
+resolver by passing "-dns-resolver 10.0.0.1". The resolver forwards queries
+to the nameservers configured in /etc/resolv.conf.`,
+	)
 	profile := fs.Bool(
 		"profile",
 		false,
-		"enable profiling",
+		"Enable profiling.",
 	)
 	vsockPort := fs.Uint(
 		"vsock-port",
 		tunnel.DefaultVSOCKPort,
-		"VSOCK listening port that veil connects to",
+		"VSOCK listening port that veil connects to.",
 	)
 	if err := fs.Parse(args); err != nil {
 		return nil, err
@@ -46,8 +56,9 @@ func parseFlags(out io.Writer, args []string) (_ *config.VeilProxy, err error) {
 
 	// Build and validate the configuration.
 	cfg := &config.VeilProxy{
-		Profile:   *profile,
-		VSOCKPort: uint32(*vsockPort),
+		DNSForwarder: *dnsForwarder,
+		Profile:      *profile,
+		VSOCKPort:    uint32(*vsockPort),
 	}
 	return cfg, validate.Object(cfg)
 }
@@ -62,7 +73,7 @@ func listenVSOCK(port uint32) (_ net.Listener, err error) {
 	return vsock.ListenContextID(cid, port, nil)
 }
 
-func acceptLoop(ctx context.Context, ln net.Listener) {
+func acceptLoop(ctx context.Context, ln net.Listener, cfg *config.VeilProxy) {
 	// Print errors that occur while forwarding packets.
 	ch := make(chan error)
 	defer close(ch)
@@ -93,6 +104,15 @@ func acceptLoop(ctx context.Context, ln net.Listener) {
 			defer func() { _ = tunDev.Close() }()
 			log.Print("Created tun device.")
 
+			dns, err := startDNSForwarder(ctx, cfg)
+			if err != nil {
+				return fmt.Errorf("failed to start DNS forwarder: %w", err)
+			}
+			if dns != nil {
+				defer func() { _ = dns.Close() }()
+				log.Printf("Started DNS forwarder at %s.", dns.UDPAddr())
+			}
+
 			var wg sync.WaitGroup
 			wg.Add(2)
 			go proxy.VSOCKToTun(vm, tunDev, ch, &wg)
@@ -110,6 +130,26 @@ func acceptLoop(ctx context.Context, ln net.Listener) {
 			timer.Reset()
 		}
 	}
+}
+
+func startDNSForwarder(
+	ctx context.Context,
+	cfg *config.VeilProxy,
+) (*dns.Forwarder, error) {
+	if !cfg.DNSForwarder {
+		return nil, nil
+	}
+
+	upstreams, err := dns.UpstreamsFromFile(hostResolvConf)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read DNS upstreams from %s: %w",
+			hostResolvConf, err)
+	}
+
+	return dns.Start(ctx, dns.Config{
+		ListenAddr: net.JoinHostPort(tun.ProxyIP, "53"),
+		Upstreams:  upstreams,
+	})
 }
 
 func run(ctx context.Context, out io.Writer, args []string) (origErr error) {
@@ -156,7 +196,7 @@ func run(ctx context.Context, out io.Writer, args []string) (origErr error) {
 
 	// Accept new connections from the VSOCK listener and begin forwarding
 	// packets.
-	acceptLoop(ctx, ln)
+	acceptLoop(ctx, ln, cfg)
 	return nil
 }
 

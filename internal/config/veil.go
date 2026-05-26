@@ -57,9 +57,17 @@ type Veil struct {
 	// is only used by the enclave application.  This field is required.
 	IntPort int
 
+	// NDots contains the ndots resolver option that the enclave should use.
+	// If nil, veil leaves this option out of resolv.conf.
+	NDots *int
+
 	// Resolver contains the IP address of the DNS resolver that the enclave
 	// should use, e.g., 1.1.1.1.
 	Resolver string
+
+	// SearchDomains contains the resolver search list that the enclave should
+	// use.
+	SearchDomains []string
 
 	// SilenceApp can be set to discard the application's stdout and stderr if
 	// -app-cmd is used.
@@ -101,6 +109,9 @@ func (c *Veil) Validate() map[string]string {
 
 	if c.VSOCKPort == 0 {
 		problems["-vsock-port"] = "port must not be 0"
+	}
+	if c.NDots != nil && (*c.NDots < 0 || *c.NDots > 15) {
+		problems["-dns-ndots"] = "must be between 0 and 15"
 	}
 
 	// Check invalid field combinations.
