@@ -55,9 +55,9 @@ enclave: $(godeps) $(image_eif) terminate
 		--enclave-name veil \
 		--eif-path $(image_eif) \
 		--cpu-count 2 \
-		--memory 3850
+		--memory 4096
 
-$(image_test_tar): $(godeps) $(image_test_dockerfile)
+$(image_test_tar): $(godeps) $(image_test_dockerfile) docker/run-unit-tests.sh
 	@echo "Building $(image_test_tar)..."
 	@docker run --volume $(PWD):/workspace \
 		gcr.io/kaniko-project/executor:v1.9.2 \
@@ -84,7 +84,7 @@ enclave-test: $(godeps) $(image_test_eif) terminate
 		--eif-path $(image_test_eif) \
 		--attach-console \
 		--cpu-count 2 \
-		--memory 3850
+		--memory 4096
 
 .PHONY: terminate
 terminate:
