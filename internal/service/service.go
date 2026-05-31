@@ -9,6 +9,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"time"
 
 	"github.com/Amnesic-Systems/veil/internal/addr"
 	"github.com/Amnesic-Systems/veil/internal/config"
@@ -140,13 +141,16 @@ func startAllWebSrvs(
 	}(extSrv)
 
 	// Wait until the context is canceled, at which point it's time to stop web
-	// servers.
+	// servers. Use a fresh context for Shutdown so active connections get a
+	// chance to drain rather than being cut off immediately.
 	<-ctx.Done()
 	log.Print("Context cancelled; shutting down veil.")
-	if err := intSrv.Shutdown(ctx); err != nil {
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := intSrv.Shutdown(shutdownCtx); err != nil {
 		log.Printf("Error shutting down internal server: %v", err)
 	}
-	if err := extSrv.Shutdown(ctx); err != nil {
+	if err := extSrv.Shutdown(shutdownCtx); err != nil {
 		log.Printf("Error shutting down external server: %v", err)
 	}
 }

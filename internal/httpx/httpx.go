@@ -90,7 +90,6 @@ func WaitForSvc(
 ) (err error) {
 	defer errs.Wrap(&err, "failed to wait for service")
 
-	start := time.Now()
 	deadline, ok := ctx.Deadline()
 	if !ok {
 		return errors.New("context has no deadline")
@@ -110,7 +109,7 @@ func WaitForSvc(
 			log.Print("Service is ready.")
 			return nil
 		}
-		if time.Since(start) > deadline.Sub(start) {
+		if time.Now().After(deadline) {
 			return errDeadlineExceeded
 		}
 		time.Sleep(10 * time.Millisecond)
