@@ -113,6 +113,19 @@ func acceptLoop(ctx context.Context, ln net.Listener, cfg *config.VeilProxy) {
 				log.Printf("Started DNS forwarder at %s.", dns.UDPAddr())
 			}
 
+			// Close vm and tunDev when the context is canceled to
+			// unblock the forwarding goroutines before wg.Wait().
+			stopCh := make(chan struct{})
+			defer close(stopCh)
+			go func() {
+				select {
+				case <-ctx.Done():
+					_ = vm.Close()
+					_ = tunDev.Close()
+				case <-stopCh:
+				}
+			}()
+
 			var wg sync.WaitGroup
 			wg.Add(2)
 			go proxy.VSOCKToTun(vm, tunDev, ch, &wg)

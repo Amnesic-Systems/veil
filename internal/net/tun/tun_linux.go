@@ -41,6 +41,7 @@ func setupTun(typ int) (*os.File, error) {
 		return nil, err
 	}
 	if err := configureTun(typ); err != nil {
+		_ = fd.Close()
 		return nil, err
 	}
 
