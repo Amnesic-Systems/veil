@@ -100,11 +100,11 @@ func attestEnclave(
 	if !pcrs.Equal(doc.PCRs) {
 		log.Printf("Expected PCRs:\n%sbut got PCRs:\n%s", pcrs, doc.PCRs)
 		color.Red("Enclave's code DOES NOT match local code!")
+		return errors.New("enclave code does not match local code")
 	} else {
 		color.Green("Enclave's code matches local code!")
+		return nil
 	}
-
-	return nil
 }
 
 func buildReq(
