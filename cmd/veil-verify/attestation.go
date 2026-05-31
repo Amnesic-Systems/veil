@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"crypto/sha512"
 	"encoding/hex"
 	"encoding/json"
@@ -24,6 +25,7 @@ import (
 	"github.com/Amnesic-Systems/veil/internal/httpx"
 	"github.com/Amnesic-Systems/veil/internal/nonce"
 	"github.com/Amnesic-Systems/veil/internal/service"
+	"github.com/Amnesic-Systems/veil/internal/service/attestation"
 	"github.com/Amnesic-Systems/veil/internal/util/must"
 )
 
@@ -84,6 +86,9 @@ func attestEnclave(
 	if err != nil {
 		return err
 	}
+	if err := verifyTLSBinding(resp, doc); err != nil {
+		return err
+	}
 
 	// Delete empty PCR values from the attestation document.  This is not
 	// ideal; we should either have the rest of the code tolerate empty PCR
@@ -105,6 +110,22 @@ func attestEnclave(
 		color.Green("Enclave's code matches local code!")
 		return nil
 	}
+}
+
+func verifyTLSBinding(resp *http.Response, doc *enclave.Document) error {
+	if resp.TLS == nil || len(resp.TLS.PeerCertificates) == 0 {
+		return errors.New("response has no TLS peer certificate")
+	}
+
+	hashes, err := attestation.GetHashes(&doc.AuxInfo)
+	if err != nil {
+		return fmt.Errorf("failed to get attested TLS certificate hash: %w", err)
+	}
+	gotHash := sha256.Sum256(resp.TLS.PeerCertificates[0].Raw)
+	if !bytes.Equal(gotHash[:], hashes.TlsKeyHash[:]) {
+		return errors.New("TLS certificate does not match attestation document")
+	}
+	return nil
 }
 
 func buildReq(
