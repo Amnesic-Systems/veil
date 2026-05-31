@@ -73,7 +73,7 @@ func (a *Attester) Verify(
 		return nil, errors.New("attestation document is nil")
 	}
 	if doc.Type != a.Type() {
-		return nil, errors.New("attestation document type mismatch")
+		return nil, errs.ErrTypeMismatch
 	}
 
 	// First, verify the attestation document.
@@ -91,7 +91,7 @@ func (a *Attester) Verify(
 			return nil, err
 		}
 		if *ourNonce != *docNonce {
-			return nil, errors.New("nonce does not match")
+			return nil, errs.ErrNonceMismatch
 		}
 	}
 

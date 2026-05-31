@@ -7,9 +7,14 @@ import (
 )
 
 var (
-	ErrInvalidFormat = errors.New("invalid format")
-	ErrInvalidLength = errors.New("invalid length")
-	ErrIsNil         = errors.New("argument must not be nil")
+	ErrInvalidFormat   = errors.New("invalid format")
+	ErrInvalidLength   = errors.New("invalid length")
+	ErrIsNil           = errors.New("argument must not be nil")
+	ErrPCRMismatch     = errors.New("enclave code does not match local code")
+	ErrBindingMismatch = errors.New("TLS certificate does not match attestation document")
+	ErrNonceMismatch   = errors.New("nonce does not match")
+	ErrTypeMismatch    = errors.New("attestation document type mismatch")
+	ErrEnclaveErr      = errors.New("enclave returned an error")
 )
 
 // Wrap wraps the given error using the given string and (if provided) string
