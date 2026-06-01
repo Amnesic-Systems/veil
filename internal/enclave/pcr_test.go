@@ -91,6 +91,17 @@ func TestPCRsEqual(t *testing.T) {
 			want: true,
 		},
 		{
+			name: "ignore PCR4 if only set once",
+			pcr1: PCR{
+				1: []byte("foo"),
+				4: []byte("bar"),
+			},
+			pcr2: PCR{
+				1: []byte("foo"),
+			},
+			want: true,
+		},
+		{
 			name: "length mismatch",
 			pcr1: PCR{
 				1: []byte("foobar"),
@@ -100,17 +111,6 @@ func TestPCRsEqual(t *testing.T) {
 				1: []byte("foobar"),
 			},
 			want: false,
-		},
-		{
-			name: "length mismatch due to PCR4",
-			pcr1: PCR{
-				1: []byte("foo"),
-				4: []byte("bar"),
-			},
-			pcr2: PCR{
-				1: []byte("foo"),
-			},
-			want: true,
 		},
 		{
 			name: "PCR index mismatch",
