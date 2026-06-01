@@ -33,7 +33,7 @@ func NewVSOCK() *VsockTunneler {
 
 func (v *VsockTunneler) Start(
 	ctx context.Context,
-	port uint32,
+	cfg Settings,
 ) error {
 	readyCh := make(chan struct{})
 	var ready sync.Once
@@ -47,7 +47,7 @@ func (v *VsockTunneler) Start(
 				return
 			}
 
-			if err = setupTunnel(ctx, v.timer, port, func() {
+			if err = setupTunnel(ctx, v.timer, cfg, func() {
 				ready.Do(func() { close(readyCh) })
 			}); err != nil {
 				log.Printf("Error: %v", err)
@@ -70,7 +70,7 @@ func (v *VsockTunneler) Start(
 func setupTunnel(
 	ctx context.Context,
 	timer *backoff.Timer,
-	port uint32,
+	cfg Settings,
 	ready func(),
 ) (err error) {
 	defer errs.Wrap(&err, "tunnel failed")
@@ -80,26 +80,28 @@ func setupTunnel(
 	)
 
 	// Establish TCP-over-VSOCK connection with veil-proxy.
-	conn, err := vsock.Dial(proxyCID, port, nil)
+	conn, err := vsock.Dial(proxyCID, cfg.Port, nil)
 	if err != nil {
 		return fmt.Errorf("failed to connect to veil-proxy: %w", err)
 	}
 	defer func() { _ = conn.Close() }()
 	log.Println("Established TCP connection with veil-proxy.")
 
+	mtu := tun.Config{MTU: cfg.MTU}.MTUOrDefault()
+
 	// Create and configure the tun device.
-	tun, err := tun.SetupTunAsEnclave()
+	tunDev, err := tun.SetupTunAsEnclave(tun.Config{MTU: cfg.MTU})
 	if err != nil {
 		return fmt.Errorf("failed to set up tun device: %w", err)
 	}
-	defer func() { _ = tun.Close() }()
+	defer func() { _ = tunDev.Close() }()
 	log.Println("Set up tun device.")
 
 	// Spawn goroutines that forward traffic and wait for them to finish.
 	wg.Add(2)
 	defer wg.Wait()
-	go proxy.VSOCKToTun(conn, tun, errCh, &wg)
-	go proxy.TunToVSOCK(tun, conn, errCh, &wg)
+	go proxy.VSOCKToTun(conn, tunDev, mtu, errCh, &wg)
+	go proxy.TunToVSOCK(tunDev, conn, mtu, errCh, &wg)
 	log.Println("Started goroutines to forward traffic.")
 	ready()
 
@@ -111,7 +113,7 @@ func setupTunnel(
 	case err := <-errCh:
 		return err
 	case <-ctx.Done():
-		_, _ = conn.Close(), tun.Close()
+		_, _ = conn.Close(), tunDev.Close()
 		return nil
 	}
 }

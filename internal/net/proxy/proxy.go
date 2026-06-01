@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"io"
 	"sync"
-
-	"github.com/Amnesic-Systems/veil/internal/net/tun"
 )
 
 const lenBufSize = 2
@@ -18,6 +16,7 @@ const lenBufSize = 2
 func TunToVSOCK(
 	from io.ReadCloser,
 	to io.WriteCloser,
+	mtu int,
 	ch chan error,
 	wg *sync.WaitGroup,
 ) {
@@ -25,7 +24,7 @@ func TunToVSOCK(
 	defer wg.Done()
 	var (
 		err     error
-		sendBuf = make([]byte, lenBufSize+tun.MTU)
+		sendBuf = make([]byte, lenBufSize+mtu)
 		pktBuf  = sendBuf[lenBufSize:]
 	)
 
@@ -55,6 +54,7 @@ func TunToVSOCK(
 func VSOCKToTun(
 	from io.ReadCloser,
 	to io.WriteCloser,
+	mtu int,
 	ch chan error,
 	wg *sync.WaitGroup,
 ) {
@@ -64,7 +64,7 @@ func VSOCKToTun(
 		err       error
 		pktLen    uint16
 		pktLenBuf = make([]byte, lenBufSize)
-		pktBuf    = make([]byte, tun.MTU)
+		pktBuf    = make([]byte, mtu)
 	)
 
 	for {
@@ -74,6 +74,10 @@ func VSOCKToTun(
 			break
 		}
 		pktLen = binary.BigEndian.Uint16(pktLenBuf)
+		if int(pktLen) > mtu {
+			err = fmt.Errorf("packet length %d exceeds mtu %d", pktLen, mtu)
+			break
+		}
 
 		// Read the packet.
 		if _, err = io.ReadFull(from, pktBuf[:pktLen]); err != nil {

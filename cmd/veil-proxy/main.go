@@ -50,6 +50,11 @@ to the nameservers configured in /etc/resolv.conf.`,
 		tunnel.DefaultVSOCKPort,
 		"VSOCK listening port that veil connects to.",
 	)
+	tunMTU := fs.Int(
+		"tun-mtu",
+		tun.DefaultMTU,
+		"MTU of the tunnel TUN interface (default 65535); must match on veil-proxy and veil-daemon",
+	)
 	if err := fs.Parse(args); err != nil {
 		return nil, err
 	}
@@ -59,6 +64,7 @@ to the nameservers configured in /etc/resolv.conf.`,
 		DNSForwarder: *dnsForwarder,
 		Profile:      *profile,
 		VSOCKPort:    uint32(*vsockPort),
+		TunMTU:       *tunMTU,
 	}
 	return cfg, validate.Object(cfg)
 }
@@ -97,7 +103,7 @@ func acceptLoop(ctx context.Context, ln net.Listener, cfg *config.VeilProxy) {
 			defer func() { _ = vm.Close() }()
 			log.Printf("Accepted new connection from %s.", vm.RemoteAddr())
 
-			tunDev, err := tun.SetupTunAsProxy()
+			tunDev, err := tun.SetupTunAsProxy(tun.Config{MTU: cfg.TunMTU})
 			if err != nil {
 				return fmt.Errorf("failed to create tun device: %w", err)
 			}
@@ -112,6 +118,8 @@ func acceptLoop(ctx context.Context, ln net.Listener, cfg *config.VeilProxy) {
 				defer func() { _ = dns.Close() }()
 				log.Printf("Started DNS forwarder at %s.", dns.UDPAddr())
 			}
+
+			mtu := config.TunMTUOrDefault(cfg.TunMTU)
 
 			// Close vm and tunDev when the context is canceled to
 			// unblock the forwarding goroutines before wg.Wait().
@@ -128,8 +136,8 @@ func acceptLoop(ctx context.Context, ln net.Listener, cfg *config.VeilProxy) {
 
 			var wg sync.WaitGroup
 			wg.Add(2)
-			go proxy.VSOCKToTun(vm, tunDev, ch, &wg)
-			go proxy.TunToVSOCK(tunDev, vm, ch, &wg)
+			go proxy.VSOCKToTun(vm, tunDev, mtu, ch, &wg)
+			go proxy.TunToVSOCK(tunDev, vm, mtu, ch, &wg)
 			wg.Wait()
 
 			return nil
