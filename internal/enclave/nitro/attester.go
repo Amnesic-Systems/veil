@@ -2,6 +2,7 @@ package nitro
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/Amnesic-Systems/veil/internal/enclave"
@@ -41,7 +42,7 @@ func (a *Attester) Attest(aux *enclave.AuxInfo) (_ *enclave.RawDocument, err err
 	}
 
 	if aux == nil {
-		return nil, errors.New("aux info is nil")
+		return nil, fmt.Errorf("%w: %s", errs.ErrIsNil, "aux info")
 	}
 
 	req := &request.Attestation{
@@ -73,7 +74,7 @@ func (a *Attester) Verify(
 		return nil, errors.New("attestation document is nil")
 	}
 	if doc.Type != a.Type() {
-		return nil, errors.New("attestation document type mismatch")
+		return nil, errs.ErrTypeMismatch
 	}
 
 	// First, verify the attestation document.
@@ -91,7 +92,7 @@ func (a *Attester) Verify(
 			return nil, err
 		}
 		if *ourNonce != *docNonce {
-			return nil, errors.New("nonce does not match")
+			return nil, errs.ErrNonceMismatch
 		}
 	}
 

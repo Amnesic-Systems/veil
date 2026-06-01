@@ -66,7 +66,8 @@ func attestEnclave(
 	}
 	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("enclave returned %q with body: %s", resp.Status, string(body))
+		return fmt.Errorf("%w: %q with body: %s",
+			errs.ErrEnclaveErr, resp.Status, string(body))
 	}
 
 	// Parse the attestation document.
@@ -105,7 +106,7 @@ func attestEnclave(
 	if !pcrs.Equal(doc.PCRs) {
 		log.Printf("Expected PCRs:\n%sbut got PCRs:\n%s", pcrs, doc.PCRs)
 		color.Red("Enclave's code DOES NOT match local code!")
-		return errors.New("enclave code does not match local code")
+		return errs.ErrPCRMismatch
 	} else {
 		color.Green("Enclave's code matches local code!")
 		return nil
@@ -123,7 +124,7 @@ func verifyTLSBinding(resp *http.Response, doc *enclave.Document) error {
 	}
 	gotHash := sha256.Sum256(resp.TLS.PeerCertificates[0].Raw)
 	if !bytes.Equal(gotHash[:], hashes.TlsKeyHash[:]) {
-		return errors.New("TLS certificate does not match attestation document")
+		return errs.ErrBindingMismatch
 	}
 	return nil
 }

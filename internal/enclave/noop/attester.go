@@ -2,8 +2,10 @@ package noop
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/Amnesic-Systems/veil/internal/enclave"
+	"github.com/Amnesic-Systems/veil/internal/errs"
 	"github.com/Amnesic-Systems/veil/internal/nonce"
 )
 
@@ -21,10 +23,15 @@ func (*Attester) Type() string {
 }
 
 func (*Attester) Attest(aux *enclave.AuxInfo) (*enclave.RawDocument, error) {
+	if aux == nil {
+		return nil, fmt.Errorf("%w: %s", errs.ErrIsNil, "aux info")
+	}
+
 	// With the Nitro attester, the attestation document is a CBOR-encoded byte
-	// array.  For simplicity, the Noop attester encodes the given AuxInfo as a
+	// array.  For simplicity, the Noop attester encodes a Document containing the
+	// given AuxInfo as a
 	// JSON object in the attestation document.
-	a, err := json.Marshal(aux)
+	a, err := json.Marshal(&enclave.Document{AuxInfo: *aux})
 	if err != nil {
 		return nil, err
 	}
@@ -35,12 +42,22 @@ func (*Attester) Attest(aux *enclave.AuxInfo) (*enclave.RawDocument, error) {
 }
 
 func (*Attester) Verify(a *enclave.RawDocument, n *nonce.Nonce) (*enclave.Document, error) {
-	var doc = new(enclave.Document)
-	var aux = new(enclave.AuxInfo)
+	if a.Type != enclave.TypeNoop {
+		return nil, errs.ErrTypeMismatch
+	}
 
-	if err := json.Unmarshal(a.Doc, aux); err != nil {
+	doc := new(enclave.Document)
+	if err := json.Unmarshal(a.Doc, doc); err != nil {
 		return nil, err
 	}
-	doc.AuxInfo = *aux
+	if n != nil {
+		docNonce, err := nonce.FromSlice(doc.Nonce)
+		if err != nil {
+			return nil, err
+		}
+		if *n != *docNonce {
+			return nil, errs.ErrNonceMismatch
+		}
+	}
 	return doc, nil
 }
