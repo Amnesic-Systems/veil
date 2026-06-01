@@ -2,6 +2,7 @@ package nitro
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/Amnesic-Systems/veil/internal/enclave"
@@ -41,7 +42,7 @@ func (a *Attester) Attest(aux *enclave.AuxInfo) (_ *enclave.RawDocument, err err
 	}
 
 	if aux == nil {
-		return nil, errors.New("aux info is nil")
+		return nil, fmt.Errorf("%w: %s", errs.ErrIsNil, "aux info")
 	}
 
 	req := &request.Attestation{

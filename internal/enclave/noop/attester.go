@@ -2,6 +2,7 @@ package noop
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/Amnesic-Systems/veil/internal/enclave"
 	"github.com/Amnesic-Systems/veil/internal/errs"
@@ -22,6 +23,10 @@ func (*Attester) Type() string {
 }
 
 func (*Attester) Attest(aux *enclave.AuxInfo) (*enclave.RawDocument, error) {
+	if aux == nil {
+		return nil, fmt.Errorf("%w: %s", errs.ErrIsNil, "aux info")
+	}
+
 	// With the Nitro attester, the attestation document is a CBOR-encoded byte
 	// array.  For simplicity, the Noop attester encodes a Document containing the
 	// given AuxInfo as a
