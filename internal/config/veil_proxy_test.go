@@ -3,6 +3,7 @@ package config
 import (
 	"testing"
 
+	"github.com/Amnesic-Systems/veil/internal/tunnel"
 	"github.com/Amnesic-Systems/veil/internal/types/validate"
 	"github.com/stretchr/testify/require"
 )
@@ -21,6 +22,14 @@ func TestVeilProxyConfig(t *testing.T) {
 		{
 			name: "valid port",
 			cfg:  &VeilProxy{VSOCKPort: 1},
+		},
+		{
+			name: "invalid stream count",
+			cfg: &VeilProxy{
+				VSOCKPort:    1,
+				VsockStreams: tunnel.MaxVsockDataStreams + 1,
+			},
+			wantErrs: 1,
 		},
 	}
 

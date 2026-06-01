@@ -78,9 +78,13 @@ type Veil struct {
 	// of the real attester.
 	Testing bool
 
-	// VSOCKPort contains the port that veil uses to communicate with veil-proxy
-	// on the EC2 host.
+	// VSOCKPort contains the first VSOCK port that veil uses to communicate
+	// with veil-proxy on the EC2 host.
 	VSOCKPort uint32
+
+	// VsockStreams is the number of data VSOCK streams in addition to the
+	// control stream on VSOCKPort.
+	VsockStreams uint
 
 	// WaitForApp instructs veil to wait for the application's signal
 	// before launching the Internet-facing Web server.  Set this flag if your
@@ -110,6 +114,7 @@ func (c *Veil) Validate() map[string]string {
 	if c.VSOCKPort == 0 {
 		problems["-vsock-port"] = "port must not be 0"
 	}
+	problems = validateVsockStreams(problems, c.VsockStreams, c.VSOCKPort)
 	if c.NDots != nil && (*c.NDots < 0 || *c.NDots > 15) {
 		problems["-dns-ndots"] = "must be between 0 and 15"
 	}

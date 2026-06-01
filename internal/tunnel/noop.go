@@ -8,6 +8,6 @@ func NewNoop() *NoopTunneler {
 	return &NoopTunneler{}
 }
 
-func (t *NoopTunneler) Start(_ context.Context, _ uint32) error {
+func (t *NoopTunneler) Start(_ context.Context, _ Settings) error {
 	return nil
 }

@@ -21,10 +21,27 @@ func TunToVSOCK(
 	ch chan error,
 	wg *sync.WaitGroup,
 ) {
-	defer func() { _ = to.Close() }()
+	TunToVSOCKStreams(from, []io.WriteCloser{to}, ch, wg)
+}
+
+// TunToVSOCKStreams forwards packets from tun to parallel VSOCK streams.
+// Flows are hashed to a stream so unrelated traffic avoids head-of-line
+// blocking on a single byte pipe.
+func TunToVSOCKStreams(
+	from io.ReadCloser,
+	to []io.WriteCloser,
+	ch chan error,
+	wg *sync.WaitGroup,
+) {
+	defer func() {
+		for _, w := range to {
+			_ = w.Close()
+		}
+	}()
 	defer wg.Done()
 	var (
 		err     error
+		streams = len(to)
 		sendBuf = make([]byte, lenBufSize+tun.MTU)
 		pktBuf  = sendBuf[lenBufSize:]
 	)
@@ -35,7 +52,8 @@ func TunToVSOCK(
 		if nr > 0 {
 			// Forward the network packet to our TCP-over-VSOCK connection.
 			binary.BigEndian.PutUint16(sendBuf, uint16(nr))
-			if _, werr := to.Write(sendBuf[:lenBufSize+nr]); werr != nil {
+			idx := streamIndex(pktBuf[:nr], streams)
+			if _, werr := to[idx].Write(sendBuf[:lenBufSize+nr]); werr != nil {
 				err = werr
 				break
 			}

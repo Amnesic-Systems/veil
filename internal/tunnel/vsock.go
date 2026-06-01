@@ -3,7 +3,9 @@ package tunnel
 import (
 	"context"
 	"fmt"
+	"io"
 	"log"
+	"net"
 	"sync"
 
 	"github.com/Amnesic-Systems/veil/internal/backoff"
@@ -17,8 +19,11 @@ const (
 	// proxyCID determines the CID (analogous to an IP address) of the parent
 	// EC2 instance. According to AWS docs, it is always 3:
 	// https://docs.aws.amazon.com/enclaves/latest/user/nitro-enclave-concepts.html
-	proxyCID         = 3
-	DefaultVSOCKPort = 1024
+	proxyCID = 3
+
+	DefaultVSOCKPort        = 1024
+	DefaultVsockDataStreams = 0
+	MaxVsockDataStreams     = 63
 )
 
 type VsockTunneler struct {
@@ -33,7 +38,7 @@ func NewVSOCK() *VsockTunneler {
 
 func (v *VsockTunneler) Start(
 	ctx context.Context,
-	port uint32,
+	cfg Settings,
 ) error {
 	readyCh := make(chan struct{})
 	var ready sync.Once
@@ -47,7 +52,7 @@ func (v *VsockTunneler) Start(
 				return
 			}
 
-			if err = setupTunnel(ctx, v.timer, port, func() {
+			if err = setupTunnel(ctx, v.timer, cfg, func() {
 				ready.Do(func() { close(readyCh) })
 			}); err != nil {
 				log.Printf("Error: %v", err)
@@ -70,36 +75,56 @@ func (v *VsockTunneler) Start(
 func setupTunnel(
 	ctx context.Context,
 	timer *backoff.Timer,
-	port uint32,
+	cfg Settings,
 	ready func(),
 ) (err error) {
 	defer errs.Wrap(&err, "tunnel failed")
 	var (
-		wg    sync.WaitGroup
-		errCh = make(chan error, 2)
+		wg      sync.WaitGroup
+		streams = StreamCount(cfg.DataStreams)
+		errCh   = make(chan error, streams)
 	)
 
-	// Establish TCP-over-VSOCK connection with veil-proxy.
-	conn, err := vsock.Dial(proxyCID, port, nil)
-	if err != nil {
-		return fmt.Errorf("failed to connect to veil-proxy: %w", err)
+	conns := make([]net.Conn, streams)
+	for i := uint(0); i < streams; i++ {
+		// Establish a VSOCK connection with veil-proxy for each stream.
+		conn, dialErr := vsock.Dial(proxyCID, cfg.Port+uint32(i), nil)
+		if dialErr != nil {
+			return fmt.Errorf("failed to connect VSOCK stream %d: %w", i, dialErr)
+		}
+		conns[i] = conn
 	}
-	defer func() { _ = conn.Close() }()
-	log.Println("Established TCP connection with veil-proxy.")
+	defer func() {
+		for _, conn := range conns {
+			_ = conn.Close()
+		}
+	}()
+	log.Printf(
+		"Established %d VSOCK stream(s) with veil-proxy (1 control + %d data).",
+		streams,
+		cfg.DataStreams,
+	)
 
 	// Create and configure the tun device.
-	tun, err := tun.SetupTunAsEnclave()
+	tunDev, err := tun.SetupTunAsEnclave()
 	if err != nil {
 		return fmt.Errorf("failed to set up tun device: %w", err)
 	}
-	defer func() { _ = tun.Close() }()
+	defer func() { _ = tunDev.Close() }()
 	log.Println("Set up tun device.")
 
-	// Spawn goroutines that forward traffic and wait for them to finish.
-	wg.Add(2)
+	writers := make([]io.WriteCloser, len(conns))
+	for i, conn := range conns {
+		writers[i] = conn
+	}
+
+	wg.Add(1 + len(conns))
 	defer wg.Wait()
-	go proxy.VSOCKToTun(conn, tun, errCh, &wg)
-	go proxy.TunToVSOCK(tun, conn, errCh, &wg)
+	// Spawn goroutines that forward traffic and wait for them to finish.
+	go proxy.TunToVSOCKStreams(tunDev, writers, errCh, &wg)
+	for _, conn := range conns {
+		go proxy.VSOCKToTun(conn, tunDev, errCh, &wg)
+	}
 	log.Println("Started goroutines to forward traffic.")
 	ready()
 
@@ -111,7 +136,6 @@ func setupTunnel(
 	case err := <-errCh:
 		return err
 	case <-ctx.Done():
-		_, _ = conn.Close(), tun.Close()
 		return nil
 	}
 }
