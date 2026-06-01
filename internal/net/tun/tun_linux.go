@@ -23,24 +23,24 @@ type ifReq struct {
 
 // SetupTunAsProxy sets up a tun interface and returns a ready-to-use file
 // descriptor.
-func SetupTunAsProxy() (*os.File, error) {
-	return setupTun(asProxy)
+func SetupTunAsProxy(cfg Config) (*os.File, error) {
+	return setupTun(asProxy, cfg.MTUOrDefault())
 }
 
 // SetupTunAsEnclave sets up a tun interface and returns a ready-to-use file
 // descriptor.
-func SetupTunAsEnclave() (*os.File, error) {
-	return setupTun(asEnclave)
+func SetupTunAsEnclave(cfg Config) (*os.File, error) {
+	return setupTun(asEnclave, cfg.MTUOrDefault())
 }
 
 // setupTun creates and configures a tun interface. The given typ must be
 // asEnclave or asProxy.
-func setupTun(typ int) (*os.File, error) {
+func setupTun(typ int, mtu int) (*os.File, error) {
 	fd, err := createTun()
 	if err != nil {
 		return nil, err
 	}
-	if err := configureTun(typ); err != nil {
+	if err := configureTun(typ, mtu); err != nil {
 		_ = fd.Close()
 		return nil, err
 	}
@@ -80,7 +80,7 @@ func createTun() (*os.File, error) {
 // configureTun configures our tun device. The function assigns an IP address,
 // sets the link MTU, and may set the default gateway, after which the device
 // is ready for use.
-func configureTun(typ int) error {
+func configureTun(typ int, mtu int) error {
 	cidrStr := ProxyIP + "/24"
 	if typ == asEnclave {
 		cidrStr = EnclaveIP + "/24"
@@ -97,7 +97,7 @@ func configureTun(typ int) error {
 	if err = link.SetLinkIp(cidr, network); err != nil {
 		return fmt.Errorf("failed to set link address: %w", err)
 	}
-	if err := link.SetLinkMTU(MTU); err != nil {
+	if err := link.SetLinkMTU(mtu); err != nil {
 		return fmt.Errorf("failed to set link MTU: %w", err)
 	}
 	// Set the enclave's default gateway to the proxy's IP address.

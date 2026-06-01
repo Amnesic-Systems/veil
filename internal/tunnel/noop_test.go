@@ -7,5 +7,5 @@ import (
 )
 
 func TestNoopTunneler(t *testing.T) {
-	require.NoError(t, NewNoop().Start(t.Context(), 0))
+	require.NoError(t, NewNoop().Start(t.Context(), Settings{}))
 }

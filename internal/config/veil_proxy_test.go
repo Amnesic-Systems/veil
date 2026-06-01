@@ -22,6 +22,11 @@ func TestVeilProxyConfig(t *testing.T) {
 			name: "valid port",
 			cfg:  &VeilProxy{VSOCKPort: 1},
 		},
+		{
+			name:     "invalid tun mtu",
+			cfg:      &VeilProxy{VSOCKPort: 1, TunMTU: 1},
+			wantErrs: 1,
+		},
 	}
 
 	for _, c := range cases {

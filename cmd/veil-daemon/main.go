@@ -20,6 +20,7 @@ import (
 	"github.com/Amnesic-Systems/veil/internal/enclave/noop"
 	"github.com/Amnesic-Systems/veil/internal/errs"
 	"github.com/Amnesic-Systems/veil/internal/httpx"
+	"github.com/Amnesic-Systems/veil/internal/net/tun"
 	"github.com/Amnesic-Systems/veil/internal/service"
 	"github.com/Amnesic-Systems/veil/internal/tunnel"
 	"github.com/Amnesic-Systems/veil/internal/types/validate"
@@ -100,6 +101,11 @@ func parseFlags(out io.Writer, args []string) (*config.Veil, error) {
 		tunnel.DefaultVSOCKPort,
 		"VSOCK port that veil-proxy is listening on",
 	)
+	tunMTU := fs.Int(
+		"tun-mtu",
+		tun.DefaultMTU,
+		"MTU of the tunnel TUN interface (default 65535); must match on veil-proxy and veil-daemon",
+	)
 	waitForApp := fs.Bool(
 		"wait-for-app",
 		false,
@@ -134,6 +140,7 @@ func parseFlags(out io.Writer, args []string) (*config.Veil, error) {
 		SilenceApp:     *silenceApp,
 		Testing:        *testing,
 		VSOCKPort:      uint32(*vsockPort),
+		TunMTU:         *tunMTU,
 		WaitForApp:     *waitForApp,
 	}
 	return cfg, validate.Object(cfg)

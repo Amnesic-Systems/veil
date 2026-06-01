@@ -82,6 +82,9 @@ type Veil struct {
 	// on the EC2 host.
 	VSOCKPort uint32
 
+	// TunMTU is the tunnel interface MTU in bytes. Zero selects the default.
+	TunMTU int
+
 	// WaitForApp instructs veil to wait for the application's signal
 	// before launching the Internet-facing Web server.  Set this flag if your
 	// application takes a while to bootstrap and you don't want to risk
@@ -110,6 +113,7 @@ func (c *Veil) Validate() map[string]string {
 	if c.VSOCKPort == 0 {
 		problems["-vsock-port"] = "port must not be 0"
 	}
+	problems = validateTunMTU(problems, c.TunMTU)
 	if c.NDots != nil && (*c.NDots < 0 || *c.NDots > 15) {
 		problems["-dns-ndots"] = "must be between 0 and 15"
 	}
