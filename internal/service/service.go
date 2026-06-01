@@ -69,7 +69,10 @@ func Run(
 
 	// Set up the networking tunnel. This function will block until the tunnel
 	// is ready to use.
-	if err := tunnel.New(ctx, mechanism, cfg.VSOCKPort); err != nil {
+	if err := tunnel.New(ctx, mechanism, tunnel.Settings{
+		Port:        cfg.VSOCKPort,
+		DataStreams: cfg.VsockStreams,
+	}); err != nil {
 		log.Fatalf("Failed to set up tunnel: %v", err)
 	}
 

@@ -98,7 +98,12 @@ func parseFlags(out io.Writer, args []string) (*config.Veil, error) {
 	vsockPort := fs.Uint(
 		"vsock-port",
 		tunnel.DefaultVSOCKPort,
-		"VSOCK port that veil-proxy is listening on",
+		"First VSOCK port that veil-proxy is listening on",
+	)
+	vsockStreams := fs.Uint(
+		"vsock-streams",
+		tunnel.DefaultVsockDataStreams,
+		"Number of data VSOCK streams in addition to the control stream (default 0)",
 	)
 	waitForApp := fs.Bool(
 		"wait-for-app",
@@ -134,6 +139,7 @@ func parseFlags(out io.Writer, args []string) (*config.Veil, error) {
 		SilenceApp:     *silenceApp,
 		Testing:        *testing,
 		VSOCKPort:      uint32(*vsockPort),
+		VsockStreams:   uint(*vsockStreams),
 		WaitForApp:     *waitForApp,
 	}
 	return cfg, validate.Object(cfg)

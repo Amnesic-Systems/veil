@@ -48,7 +48,12 @@ to the nameservers configured in /etc/resolv.conf.`,
 	vsockPort := fs.Uint(
 		"vsock-port",
 		tunnel.DefaultVSOCKPort,
-		"VSOCK listening port that veil connects to.",
+		"First VSOCK port that veil connects to.",
+	)
+	vsockStreams := fs.Uint(
+		"vsock-streams",
+		tunnel.DefaultVsockDataStreams,
+		"Number of data VSOCK streams in addition to the control stream (default 0)",
 	)
 	if err := fs.Parse(args); err != nil {
 		return nil, err
@@ -59,21 +64,48 @@ to the nameservers configured in /etc/resolv.conf.`,
 		DNSForwarder: *dnsForwarder,
 		Profile:      *profile,
 		VSOCKPort:    uint32(*vsockPort),
+		VsockStreams: uint(*vsockStreams),
 	}
 	return cfg, validate.Object(cfg)
 }
 
-func listenVSOCK(port uint32) (_ net.Listener, err error) {
-	defer errs.Wrap(&err, "failed to create VSOCK listener")
+func listenVSOCKPorts(base uint32, dataStreams uint) (_ []net.Listener, err error) {
+	defer errs.Wrap(&err, "failed to create VSOCK listeners")
 
 	cid, err := vsock.ContextID()
 	if err != nil {
 		return nil, err
 	}
-	return vsock.ListenContextID(cid, port, nil)
+
+	streams := tunnel.StreamCount(dataStreams)
+	listeners := make([]net.Listener, streams)
+	for i := uint(0); i < streams; i++ {
+		listeners[i], err = vsock.ListenContextID(cid, base+uint32(i), nil)
+		if err != nil {
+			for j := uint(0); j < i; j++ {
+				_ = listeners[j].Close()
+			}
+			return nil, fmt.Errorf("listen stream %d: %w", i, err)
+		}
+	}
+	return listeners, nil
 }
 
-func acceptLoop(ctx context.Context, ln net.Listener, cfg *config.VeilProxy) {
+func acceptVSOCKStreams(listeners []net.Listener) (_ []net.Conn, err error) {
+	conns := make([]net.Conn, len(listeners))
+	for i, ln := range listeners {
+		conns[i], err = ln.Accept()
+		if err != nil {
+			for j := 0; j < i; j++ {
+				_ = conns[j].Close()
+			}
+			return nil, fmt.Errorf("accept stream %d: %w", i, err)
+		}
+	}
+	return conns, nil
+}
+
+func acceptLoop(ctx context.Context, listeners []net.Listener, cfg *config.VeilProxy) {
 	// Print errors that occur while forwarding packets.
 	ch := make(chan error)
 	defer close(ch)
@@ -85,17 +117,25 @@ func acceptLoop(ctx context.Context, ln net.Listener, cfg *config.VeilProxy) {
 
 	timer := backoff.NewTimer()
 	// Listen for connections from the enclave and begin forwarding packets
-	// once a new connection is established. At any given point, we only expect
-	// to have a single TCP-over-VSOCK connection with the enclave.
+	// once all VSOCK streams are established.
 	for {
 		if err := func() error { // Use a function so we can use defer below.
-			log.Println("Waiting for new connection from enclave.")
-			vm, err := ln.Accept()
+			log.Printf(
+				"Waiting for %d VSOCK stream(s) from enclave.",
+				len(listeners),
+			)
+			conns, err := acceptVSOCKStreams(listeners)
 			if err != nil {
-				return fmt.Errorf("failed to accept connection: %w", err)
+				return err
 			}
-			defer func() { _ = vm.Close() }()
-			log.Printf("Accepted new connection from %s.", vm.RemoteAddr())
+			defer func() {
+				for _, conn := range conns {
+					_ = conn.Close()
+				}
+			}()
+			for i, conn := range conns {
+				log.Printf("Accepted stream %d from %s.", i, conn.RemoteAddr())
+			}
 
 			tunDev, err := tun.SetupTunAsProxy()
 			if err != nil {
@@ -104,32 +144,42 @@ func acceptLoop(ctx context.Context, ln net.Listener, cfg *config.VeilProxy) {
 			defer func() { _ = tunDev.Close() }()
 			log.Print("Created tun device.")
 
-			dns, err := startDNSForwarder(ctx, cfg)
+			dnsFwd, err := startDNSForwarder(ctx, cfg)
 			if err != nil {
 				return fmt.Errorf("failed to start DNS forwarder: %w", err)
 			}
-			if dns != nil {
-				defer func() { _ = dns.Close() }()
-				log.Printf("Started DNS forwarder at %s.", dns.UDPAddr())
+			if dnsFwd != nil {
+				defer func() { _ = dnsFwd.Close() }()
+				log.Printf("Started DNS forwarder at %s.", dnsFwd.UDPAddr())
 			}
 
-			// Close vm and tunDev when the context is canceled to
-			// unblock the forwarding goroutines before wg.Wait().
+			streams := make([]io.WriteCloser, len(conns))
+			for i, conn := range conns {
+				streams[i] = conn
+			}
+
 			stopCh := make(chan struct{})
 			defer close(stopCh)
+			// Close VSOCK streams and tunDev when the context is canceled to
+			// unblock the forwarding goroutines before wg.Wait().
 			go func() {
 				select {
 				case <-ctx.Done():
-					_ = vm.Close()
+					for _, conn := range conns {
+						_ = conn.Close()
+					}
 					_ = tunDev.Close()
 				case <-stopCh:
 				}
 			}()
 
 			var wg sync.WaitGroup
-			wg.Add(2)
-			go proxy.VSOCKToTun(vm, tunDev, ch, &wg)
-			go proxy.TunToVSOCK(tunDev, vm, ch, &wg)
+			// Spawn goroutines that forward traffic and wait for them to finish.
+			wg.Add(1 + len(conns))
+			go proxy.TunToVSOCKStreams(tunDev, streams, ch, &wg)
+			for _, conn := range conns {
+				go proxy.VSOCKToTun(conn, tunDev, ch, &wg)
+			}
 			wg.Wait()
 
 			return nil
@@ -184,15 +234,16 @@ func run(ctx context.Context, out io.Writer, args []string) (origErr error) {
 		log.Print("Disabled NAT.")
 	}()
 
-	// Create a VSOCK listener that listens for incoming connections from the
-	// enclave.
-	ln, err := listenVSOCK(cfg.VSOCKPort)
+	// Create VSOCK listeners for the control stream and any data streams.
+	listeners, err := listenVSOCKPorts(cfg.VSOCKPort, cfg.VsockStreams)
 	if err != nil {
 		return err
 	}
 	go func() {
 		<-ctx.Done()
-		_ = ln.Close()
+		for _, ln := range listeners {
+			_ = ln.Close()
+		}
 	}()
 
 	// If desired, set up a Web server for the profiler.
@@ -207,9 +258,8 @@ func run(ctx context.Context, out io.Writer, args []string) (origErr error) {
 		}()
 	}
 
-	// Accept new connections from the VSOCK listener and begin forwarding
-	// packets.
-	acceptLoop(ctx, ln, cfg)
+	// Accept connections from the enclave and begin forwarding packets.
+	acceptLoop(ctx, listeners, cfg)
 	return nil
 }
 

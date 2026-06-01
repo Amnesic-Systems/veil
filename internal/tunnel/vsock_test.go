@@ -11,5 +11,7 @@ func TestVsockTunneler(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
 
-	require.ErrorIs(t, NewVSOCK().Start(ctx, 0), context.Canceled)
+	require.ErrorIs(t, NewVSOCK().Start(ctx, Settings{
+		Port: 0,
+	}), context.Canceled)
 }
